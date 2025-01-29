@@ -5,6 +5,7 @@
 #include "ldpc.h"
 
 // Function declarations for tests
+// MORE TEST FUNCTIONS
 void test_no_error(ldpc &code);
 void test_single_error(ldpc &code);
 int test_gaussian_noise(ldpc &code, float esno, int verbose = 0);

@@ -63,7 +63,7 @@ class ldpc_enc_dec : public enc_dec
     int decode(llrvec &llr, bitvec &cw_est, bitvec &info_est);
 };
 
-
+// MORE TEST FUNCTIONS
 void test_no_error(ldpc &code);
 void test_single_error(ldpc &code);
 void test_gaussian_noise(ldpc &code, float esno);
