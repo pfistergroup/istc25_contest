@@ -62,11 +62,15 @@ void test_single_error(ldpc &code) {
     std::cout << std::endl;
     cw[0] = 1 - cw[0];
 
+    std::cout << "LLR output from decoder: ";
+    for (const auto &llr_value : llr) std::cout << llr_value << " ";
+    std::cout << std::endl;
+
     std::cout << "Codeword with single error: ";
     for (const auto &bit : cw) std::cout << bit << " ";
     std::cout << std::endl;
     int result = code.decode(llr, 50, llr);
-    if (result == 0) {
+    if (result == 1) {
         std::cout << "Test Single Error: Passed" << std::endl;
     } else {
         std::cout << "Test Single Error: Failed" << std::endl;
@@ -77,6 +81,7 @@ int test_gaussian_noise(ldpc &code, float esno, int verbose) {
     bitvec info(code.n_cols, 0); // Initialize info bits to zero
     bitvec cw(code.n_cols);
     llrvec llr(code.n_cols);
+    llrvec llrout(code.n_cols);
     bitvec cw_est(code.n_cols);
 
     code.encode(info, cw);
@@ -85,7 +90,7 @@ int test_gaussian_noise(ldpc &code, float esno, int verbose) {
     for (size_t i = 0; i < cw.size(); ++i) {
         llr[i] = (cw[i] == 0 ? 1.0f : -1.0f) + distribution(generator);
     }
-    int result = code.decode(llr, 50, llr);
+    bool result = code.decode(llr, 50, llrout);
 
     if (verbose) {
         std::cout << "Running Test Gaussian Noise..." << std::endl;
@@ -101,7 +106,11 @@ int test_gaussian_noise(ldpc &code, float esno, int verbose) {
         for (const auto &llr_value : llr) std::cout << llr_value << " ";
         std::cout << std::endl;
 
-        if (result == 0) {
+        std::cout << "LLR output from decoder: ";
+        for (const auto &llr_value : llrout) std::cout << llr_value << " ";
+        std::cout << std::endl;
+
+        if (result == true) {
             std::cout << "Test Gaussian Noise: Passed" << std::endl;
         } else {
             std::cout << "Test Gaussian Noise: Failed" << std::endl;
@@ -178,15 +187,18 @@ int main(int argc, char* argv[])
     test_alist_read_write(code);
 
     // Generate long ldpc code
+    r = 1000;
+    c = 2000;
+    row_degrees.resize(r);
+    col_degrees.resize(c);
     std::fill(row_degrees.begin(), row_degrees.end(), 6); // Example row degrees
     std::fill(col_degrees.begin(), col_degrees.end(), 3); // Example column degrees
-    std::cout << "gen \n";
     code.random(r, c, row_degrees, col_degrees);
-    std::cout << "gen done\n";
+    std::cout << "Generate code n=" << c << " m=" << r << std::endl;
 
     int count = 0;
-    for (int i=0; i<10; ++i) {
-        if (!test_gaussian_noise(code, 5.0, 0))
+    for (int i=0; i<100; ++i) {
+        if (!test_gaussian_noise(code, 6.0, 0))
             count++;
     }
     std::cout << count << " errors out of 100 trials.\n"; 

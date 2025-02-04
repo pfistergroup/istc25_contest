@@ -157,9 +157,9 @@ void ldpc::create_encoder() {
 
 // Belief-propagation decoding
 int ldpc::decode(llrvec &llr_in, int n_iter, llrvec &llr_out) {
-    size_t n_edges = row.size(); // Calculate number of edges
 
     // Initialize messages
+    size_t n_edges = row.size(); // Calculate number of edges
     llrvec llr_out_temp(llr_in);
     llrvec bit_accum(n_cols);
     llrvec check_accum(n_rows);
@@ -172,7 +172,7 @@ int ldpc::decode(llrvec &llr_in, int n_iter, llrvec &llr_out) {
         // Clip bit messages
         for (size_t i = 0; i < n_edges; ++i) {
             float temp = bit_message[i];
-            bit_message[i] = (bit_message[i] < 0 ? -1 : 1) * std::max(0.001f, std::min(25.0f, std::abs(temp)));
+            bit_message[i] = (temp < 0 ? -1 : 1) * std::max(0.001f, std::min(25.0f, std::abs(temp)));
         }
 
         // Check node update
@@ -200,14 +200,16 @@ int ldpc::decode(llrvec &llr_in, int n_iter, llrvec &llr_out) {
     // Check if codeword
     std::vector<bool> checks(n_rows, true);
     for (size_t i = 0; i < n_edges; ++i) {
-      if (llr_out[i] != 0) {
-        checks[row[i]] = (checks[row[i]] != (llr_out[i] < 0));
+      if (llr_out[col[i]] != 0) {
+        checks[row[i]] = (checks[row[i]] ^ (llr_out[col[i]] < 0));
       }
       else {
         return false;
       }
     }
-    
+    //for (const auto &val: checks) std::cout << val << " ";
+    //std::cout << std::endl;
+
     // Return true if and only if codeword
     return std::all_of(checks.begin(), checks.end(), [](bool value) { return value; });
 }

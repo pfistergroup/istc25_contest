@@ -10,22 +10,34 @@
 #include "ldpc.h"
 #include "argmin.h"
 
-const int N_TEST = 2;
+const int N_TEST = 13;
+const int N_ESNO = 2;
 
 // Define structure for each test point, specifying code parameters and test conditions
 struct test_point
 {
   int k; // Number of information bits
   int n; // Number of codeword bits
-  float esno[N_TEST];  // Array of SNR values for testing
-  int n_block[N_TEST]; // Array of block sizes for testing
+  float esno[N_ESNO];  // Array of SNR values for testing
+  int n_block[N_ESNO]; // Array of block sizes for testing
 };
 
 // Define set of tests
 test_point contest[N_TEST] =
 {
-  {32,64,{5.0,10.0},{10,20}},  // Test 1 parameters
-  {64,128,{5.0,10.0},{10,20}}  // Test 2 parameters
+  {32,64,{5.0,10.0},{10,20}},   // Simple test parameters (k,n,esno_list,n_block_list)
+  {64,256,{5.0,10.0},{10,20}},  // k=64 R=1/4
+  {64,512,{5.0,10.0},{10,20}},  // k=128 R=1/4
+  {64,1024,{5.0,10.0},{10,20}}, // k=256 R=1/4
+  {64,2048,{5.0,10.0},{10,20}}, // k=512 R=1/4
+  {64,128,{5.0,10.0},{10,20}},  // k=64 R=1/2
+  {64,256,{5.0,10.0},{10,20}},  // k=128 R=1/2
+  {64,512,{5.0,10.0},{10,20}},  // k=256 R=1/2
+  {64,1024,{5.0,10.0},{10,20}}, // k=512 R=1/2
+  {64,80,{5.0,10.0},{10,20}},   // k=64 R=4/5
+  {64,160,{5.0,10.0},{10,20}},  // k=128 R=4/5
+  {64,320,{5.0,10.0},{10,20}},  // k=256 R=4/5
+  {64,640,{5.0,10.0},{10,20}}   // k=512 R=4/5
 };
 
 // Define class to collect statistics
