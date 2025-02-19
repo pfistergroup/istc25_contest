@@ -33,7 +33,7 @@ void test_no_error(ldpc &code) {
     }
 
     // Decode without errors
-    int result = code.decode(llr, 15, llr_est);
+    [[maybe_unused]] int result = code.decode(llr, 15, llr_est);
     std::cout << "Decoded LLRs: ";
     for (const auto &llr_value : llr_est) {
         if (llr_value <= 0) {
