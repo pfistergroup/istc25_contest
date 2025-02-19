@@ -46,9 +46,14 @@ void ldpc::load_alist(std::string &filename) {
         for (int i = 0; i < col_weights[j]; ++i) {
             int row_index;
             file >> row_index;
+            if (file.fail()) {
+                std::cerr << "Error reading row index for column " << j << ", position " << i << std::endl;
+                return;
+            }
             col.push_back(j);
             row.push_back(row_index - 1); // Convert to zero-based index
             n_edges++;
+            std::cout << "Added edge: (" << row_index - 1 << ", " << j << ")" << std::endl;
         }
     }
     std::cout << "Total edges read: " << n_edges << std::endl;
