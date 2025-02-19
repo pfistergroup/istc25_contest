@@ -15,7 +15,7 @@ void test_no_error(ldpc &code) {
     bitvec info(code.n_cols, 0); // Initialize info bits to zero
     bitvec cw(code.n_cols);
     llrvec llr(code.n_cols);
-    bitvec cw_est(code.n_cols);
+    bitvec cw_est(code.n_cols, 0);
     llrvec llr_est(code.n_cols);
 
     std::cout << "Running Test No Error..." << std::endl;
@@ -82,7 +82,7 @@ int test_gaussian_noise(ldpc &code, float esno, int verbose) {
     bitvec info(code.n_cols, 0); // Initialize info bits to zero
     bitvec cw(code.n_cols);
     llrvec llr(code.n_cols);
-    llrvec llr_out(code.n_cols);
+    llrvec llr_out(code.n_cols, 0.0f);
     bitvec cw_est(code.n_cols);
 
     code.encode(info, cw);
