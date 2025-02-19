@@ -10,7 +10,7 @@
 #include "ldpc.h"
 
 // Load code from file in alist format
-void ldpc::read_alist(std::string &filename) {
+void ldpc::read_alist(const std::string &filename) {
     // Open file
     std::ifstream file(filename);
     if (!file.is_open()) {
