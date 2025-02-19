@@ -10,7 +10,7 @@
 #include "ldpc.h"
 
 // Load code from file in alist format
-void ldpc::load_alist(std::string &filename) {
+void ldpc::read_alist(std::string &filename) {
     // Open file
     std::ifstream file(filename);
     if (!file.is_open()) {
@@ -34,36 +34,19 @@ void ldpc::load_alist(std::string &filename) {
     for (int j = 0; j < n_cols; ++j) {
         file >> col_weights[j];
     }
-    // Read indices of non-zero entries (column-wise)
-    std::cout << "Reading alist file: " << filename << std::endl;
-    std::cout << "Number of columns: " << n_cols << ", Number of rows: " << n_rows << std::endl;
-    std::cout << "Column weights: ";
-    for (const auto &weight : col_weights) {
-        std::cout << weight << " ";
+    for (int i = 0; i < n_rows; ++i) {
+        file >> row_weights[i];
     }
-    std::cout << std::endl;
-    std::set<std::pair<int, int>> unique_edges;
+    // Read indices of non-zero entries in each column
     for (int j = 0; j < n_cols; ++j) {
         for (int i = 0; i < col_weights[j]; ++i) {
             int row_index;
             file >> row_index;
-            if (file.fail()) {
-                std::cerr << "Error reading row index for column " << j << ", position " << i << std::endl;
-                return;
-            }
-            auto edge = std::make_pair(row_index - 1, j);
-            if (unique_edges.insert(edge).second) {
-                col.push_back(j);
-                row.push_back(row_index - 1); // Convert to zero-based index
-                n_edges++;
-                std::cout << "Added edge: (" << row_index - 1 << ", " << j << ")" << std::endl;
-            } else {
-                std::cout << "Duplicate edge ignored: (" << row_index - 1 << ", " << j << ")" << std::endl;
-            }
+            col.push_back(j);
+            row.push_back(row_index - 1); // Convert to zero-based index
+            n_edges++;
         }
     }
-    std::cout << "Total edges read: " << n_edges << std::endl;
-    std::cout << "Total edges read: " << n_edges << std::endl;
     file.close();
 }
 
@@ -86,6 +69,7 @@ void ldpc::sort_edges() {
 }
 
 void ldpc::write_alist(const std::string &filename) {
+    // Open file
     std::ofstream file(filename);
     if (!file.is_open()) {
         std::cerr << "Error opening file for writing: " << filename << std::endl;
@@ -93,7 +77,7 @@ void ldpc::write_alist(const std::string &filename) {
     }
 
     // Write number of rows and columns
-    file << n_rows << " " << n_cols << std::endl;
+    file << n_cols << " " << n_rows << std::endl;
 
     // Compute row and column weights
     intvec row_weights(n_rows, 0);
@@ -118,16 +102,24 @@ void ldpc::write_alist(const std::string &filename) {
     file << std::endl;
 
     // Write column connections
-    // Write column connections
     for (int j = 0; j < n_cols; ++j) {
-        for (size_t i = 0; i < col.size(); ++i) {
-            if (col[i] == j) {
-                file << row[i] + 1 << " "; // Convert to one-based index
+        for (size_t k = 0; k < col.size(); ++k) {
+            if (col[k] == j) {
+                file << row[k] + 1 << " "; // Convert to one-based index
             }
         }
         file << std::endl;
     }
 
+    // Write row connections
+    for (int i=0; i < n_rows; ++i) {
+        for (size_t k = 0; k < row.size(); ++k) {
+            if (row[k] == i) {
+                file << col[k] + 1 << " "; // Convert to one-based index
+            }
+        }
+        file << std::endl;
+    }
     file.close();
 }
 

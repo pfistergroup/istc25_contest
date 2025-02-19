@@ -21,7 +21,7 @@ class ldpc
     ldpc() : n_rows(0), n_cols(0), n_edges(0), rank(0) {}
 
     // Load code from file in alist format
-    void load_alist(std::string &filename);
+    void read_alist(std::string &filename);
 
     // Setup code with r rows, c cols, and row/col degrees given by rd and cd
     void random(int r,int c, std::vector<int> &rd, std::vector<int> &cd);
