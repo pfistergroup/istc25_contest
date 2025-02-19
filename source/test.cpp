@@ -22,7 +22,9 @@ void test_no_error(ldpc &code) {
     std::cout << "Initial info bits: ";
     for (const auto &bit : info) std::cout << bit << " ";
     std::cout << std::endl;
+    std::cout << "Encoding info bits..." << std::endl;
     code.encode(info, cw);
+    std::cout << "Encoding complete." << std::endl;
 
     std::cout << "Encoded codeword: ";
     for (const auto &bit : cw) std::cout << bit << " ";
@@ -42,6 +44,7 @@ void test_no_error(ldpc &code) {
     }
     std::cout << std::endl;
 
+    std::cout << "Result: " << result << std::endl;
     if (result == 1) {
         std::cout << "Test No Error: Passed" << std::endl;
     } else {
@@ -56,6 +59,7 @@ void test_single_error(ldpc &code) {
     bitvec cw_est(code.n_cols);
 
     std::cout << "Running Test Single Error..." << std::endl;
+    std::cout << "n_cols: " << code.n_cols << std::endl;
     std::cout << "Initial info bits: ";
     for (const auto &bit : info) std::cout << bit << " ";
     std::cout << std::endl;
@@ -65,9 +69,13 @@ void test_single_error(ldpc &code) {
     for (const auto &bit : cw) std::cout << bit << " ";
     std::cout << std::endl;
 
+    std::cout << "Filling LLRs..." << std::endl;
     std::fill(llr.begin(), llr.end(), 3.0f);
+    std::cout << "LLRs filled." << std::endl;
     llr[0] =  -llr[0];
+    std::cout << "Decoding..." << std::endl;
     int result = code.decode(llr, 15, llr);
+    std::cout << "Decoding complete." << std::endl;
     std::cout << "LLR output from decoder: ";
     for (const auto &llr_value : llr) std::cout << llr_value << " ";
     std::cout << std::endl;
