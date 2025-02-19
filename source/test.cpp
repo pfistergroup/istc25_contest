@@ -191,23 +191,21 @@ int main(int argc, char* argv[])
 
     // Run test functions
     test_alist_read_write(code);
-
-    return 0;
-
     test_no_error(code); 
     test_single_error(code);
     test_gaussian_noise(code, 3.0, 1); // Example ESNO value
 
     // Generate long ldpc code
-    r = 1000;
-    c = 2000;
-    row_degrees.resize(r);
-    col_degrees.resize(c);
-    std::fill(row_degrees.begin(), row_degrees.end(), 6); // Example row degrees
-    std::fill(col_degrees.begin(), col_degrees.end(), 3); // Example column degrees
-    code.random(r, c, row_degrees, col_degrees);
-    std::cout << "Generate code n=" << c << " m=" << r << std::endl;
-    code.write_alist("long_code.txt");
+    //r = 1000;
+    //c = 2000;
+    //row_degrees.resize(r);
+    //col_degrees.resize(c);
+    //std::fill(row_degrees.begin(), row_degrees.end(), 6); // Example row degrees
+    //std::fill(col_degrees.begin(), col_degrees.end(), 3); // Example column degrees
+    //code.random(r, c, row_degrees, col_degrees);
+    //std::cout << "Generate code n=" << c << " m=" << r << std::endl;
+    //code.write_alist("long_code.txt");
+    code.read_alist("CCSDS_ldpc_n256_k128.alist");
 
     // Test single error
     test_single_error(code);
