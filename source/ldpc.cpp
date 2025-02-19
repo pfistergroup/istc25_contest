@@ -34,10 +34,6 @@ void ldpc::load_alist(std::string &filename) {
     for (int j = 0; j < n_cols; ++j) {
         file >> col_weights[j];
     }
-    for (int i = 0; i < n_rows; ++i) {
-        file >> row_weights[i];
-    }
-
     // Read indices of non-zero entries (column-wise)
     for (int j = 0; j < n_cols; ++j) {
         for (int i = 0; i < col_weights[j]; ++i) {
@@ -102,27 +98,11 @@ void ldpc::write_alist(const std::string &filename) {
     file << std::endl;
 
     // Write column connections
+    // Write column connections
     for (int j = 0; j < n_cols; ++j) {
         for (size_t i = 0; i < col.size(); ++i) {
             if (col[i] == j) {
                 file << row[i] + 1 << " "; // Convert to one-based index
-            }
-        }
-        file << std::endl;
-    }
-    for (int j = 0; j < n_cols; ++j) {
-        for (size_t i = 0; i < col.size(); ++i) {
-            if (col[i] == j) {
-                file << row[i] + 1 << " "; // Convert to one-based index
-            }
-        }
-        file << std::endl;
-    }
-    // Write row connections
-    for (int i = 0; i < n_rows; ++i) {
-        for (size_t j = 0; j < row.size(); ++j) {
-            if (row[j] == i) {
-                file << col[j] + 1 << " "; // Convert to one-based index
             }
         }
         file << std::endl;
