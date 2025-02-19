@@ -11,35 +11,40 @@
 
 // Load code from file in alist format
 void ldpc::load_alist(std::string &filename) {
+    // Open file
     std::ifstream file(filename);
     if (!file.is_open()) {
         std::cerr << "Error opening file: " << filename << std::endl;
         return;
     }
 
+    // Clear row / col vectors
     row.clear();
     col.clear();
 
+    // Read basic info
     n_edges = 0;
-    file >> n_rows >> n_cols;
+    int max_col_weight, max_row_weight;
+    file >> n_cols >> n_rows;
+    file >> max_col_weight >> max_row_weight;
 
+    // Init and read row / col weights
     intvec row_weights(n_rows);
     intvec col_weights(n_cols);
-
+    for (int j = 0; j < n_cols; ++j) {
+        file >> col_weights[j];
+    }
     for (int i = 0; i < n_rows; ++i) {
         file >> row_weights[i];
     }
 
+    // Read indices of non-zero entries
     for (int j = 0; j < n_cols; ++j) {
-        file >> col_weights[j];
-    }
-
-    for (int i = 0; i < n_rows; ++i) {
-        for (int j = 0; j < row_weights[i]; ++j) {
-            int col_index;
-            file >> col_index;
-            row.push_back(i);
-            col.push_back(col_index - 1); // Convert to zero-based index
+        for (int i = 0; i < col_weights[j]; ++i) {
+            int row_index;
+            file >> row_index;
+            col.push_back(j);
+            row.push_back(row_index - 1); // Convert to zero-based index
             n_edges++;
         }
     }
@@ -74,22 +79,37 @@ void ldpc::write_alist(const std::string &filename) {
     // Write number of rows and columns
     file << n_rows << " " << n_cols << std::endl;
 
-    // Write row and column weights
+    // Compute row and column weights
     intvec row_weights(n_rows, 0);
     intvec col_weights(n_cols, 0);
     for (size_t i = 0; i < row.size(); ++i) {
         row_weights[row[i]]++;
         col_weights[col[i]]++;
     }
-    for (int weight : row_weights) {
-        file << weight << " ";
-    }
-    file << std::endl;
+
+    // Write max column and max row weight
+    file << *std::max_element(col_weights.begin(), col_weights.end()) << " ";
+    file << *std::max_element(row_weights.begin(), row_weights.end()) << std::endl;
+
+    // Write row and column weights
     for (int weight : col_weights) {
         file << weight << " ";
     }
     file << std::endl;
+    for (int weight : row_weights) {
+        file << weight << " ";
+    }
+    file << std::endl;
 
+    // Write col connections
+    for (int j = 0; j < n_cols; ++j) {
+        for (size_t i = 0; i < col.size(); ++i) {
+            if (col[i] == j) {
+                file << row[i] + 1 << " "; // Convert to one-based index
+            }
+        }
+        file << std::endl;
+    }
     // Write row connections
     for (int i = 0; i < n_rows; ++i) {
         for (size_t j = 0; j < row.size(); ++j) {
@@ -105,8 +125,10 @@ void ldpc::write_alist(const std::string &filename) {
 
 // Setup code with r rows, c cols, and row/col degrees given by rd and cd
 void ldpc::random(int r, int c, intvec &rd, intvec &cd) {
+    // Setup
     n_rows = r;
     n_cols = c;
+
     // Clear existing row and col vectors
     row.clear();
     col.clear();
@@ -154,6 +176,7 @@ void ldpc::create_encoder() {
     // This is a stub implementation
     // Actual implementation would create an encoder for the LDPC code
 }
+
 
 // Belief-propagation decoding
 int ldpc::decode(llrvec &llr_in, int n_iter, llrvec &llr_out) {
@@ -207,26 +230,27 @@ int ldpc::decode(llrvec &llr_in, int n_iter, llrvec &llr_out) {
 
     // Output
     llr_out = bit_accum;
+    //int count = 0;
     //for (size_t i = 0; i < n_cols; ++i) {
-    //    llr_out[i] = bit_accum[i];
+    //    if (llr_out[i] <= 0.0f) {
+    //        count++;
+    //        std::cout << i << "=" << llr_out[i] << " ";
+    //    }
     //}
+    //std::cout << "Count " << count << std::endl;
 
     // Check if codeword
     std::vector<int> checks(n_rows, 0);
     for (size_t i = 0; i < n_edges; ++i) {
-      if (llr_out[col[i]] != 0) {
-        checks[row[i]] ^= (llr_out[col[i]] < 0 ? 1 : 0);
+      if (llr_out[col[i]] != 0.0f) {
+        checks[row[i]] ^= (llr_out[col[i]] < 0.0f ? 1 : 0);
       }
       else {
         return 0;
       }
     }
-    //for (const auto &val: checks) std::cout << val << " ";
-    //std::cout << std::endl;
 
-    //for (size_t i = 0; i < n_rows; ++i) {
-    //    std::cout << checks[i] << " ";
-    //}
+    //for (const auto &val: checks) std::cout << val << " ";
     //std::cout << std::endl;
 
     // Return true if and only if codeword
