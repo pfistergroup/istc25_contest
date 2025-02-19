@@ -40,7 +40,6 @@ void test_no_error(ldpc &code) {
             std::cout << "XXX" << llr_value << " XXX ";
         } else
             std::cout << llr_value << " ";
-        }
     }
     std::cout << std::endl;
 
