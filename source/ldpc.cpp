@@ -42,6 +42,7 @@ void ldpc::load_alist(std::string &filename) {
         std::cout << weight << " ";
     }
     std::cout << std::endl;
+    std::set<std::pair<int, int>> unique_edges;
     for (int j = 0; j < n_cols; ++j) {
         for (int i = 0; i < col_weights[j]; ++i) {
             int row_index;
@@ -50,10 +51,15 @@ void ldpc::load_alist(std::string &filename) {
                 std::cerr << "Error reading row index for column " << j << ", position " << i << std::endl;
                 return;
             }
-            col.push_back(j);
-            row.push_back(row_index - 1); // Convert to zero-based index
-            n_edges++;
-            std::cout << "Added edge: (" << row_index - 1 << ", " << j << ")" << std::endl;
+            auto edge = std::make_pair(row_index - 1, j);
+            if (unique_edges.insert(edge).second) {
+                col.push_back(j);
+                row.push_back(row_index - 1); // Convert to zero-based index
+                n_edges++;
+                std::cout << "Added edge: (" << row_index - 1 << ", " << j << ")" << std::endl;
+            } else {
+                std::cout << "Duplicate edge ignored: (" << row_index - 1 << ", " << j << ")" << std::endl;
+            }
         }
     }
     std::cout << "Total edges read: " << n_edges << std::endl;
