@@ -232,7 +232,7 @@ int ldpc::decode(llrvec &llr_in, int n_iter, llrvec &llr_out) {
 
     // Output
     llr_out = bit_accum;
-    //int count = 0;
+    std::cout << "Checking if codeword..." << std::endl;
     //for (size_t i = 0; i < n_cols; ++i) {
     //    if (llr_out[i] <= 0.0f) {
     //        count++;
@@ -252,8 +252,15 @@ int ldpc::decode(llrvec &llr_in, int n_iter, llrvec &llr_out) {
       }
     }
 
-    //for (const auto &val: checks) std::cout << val << " ";
+    std::cout << "Check results: ";
+    for (const auto &val: checks) std::cout << val << " ";
+    std::cout << std::endl;
     std::cout << "Decoding finished." << std::endl;
+    std::cout << "Output LLRs: ";
+    for (const auto &llr_value : llr_out) {
+        std::cout << llr_value << " ";
+    }
+    std::cout << std::endl;
 
     // Return true if and only if codeword
     return std::all_of(checks.begin(), checks.end(), [](int value) { return (value==0); });
