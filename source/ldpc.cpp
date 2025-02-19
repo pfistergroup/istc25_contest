@@ -182,26 +182,27 @@ void ldpc::create_encoder() {
 // Belief-propagation decoding
 int ldpc::decode(llrvec &llr_in, int n_iter, llrvec &llr_out) {
 
-    // Initialize messages
+    std::cout << "Decoding started..." << std::endl;
     size_t n_edges = row.size(); // Calculate number of edges
-    llrvec bit_accum(n_cols);
-    llrvec check_accum(n_rows);
-    llrvec bit_message(n_edges);
-    llrvec check_message(n_edges);
+    llrvec bit_accum(n_cols, 0.0f);
+    llrvec check_accum(n_rows, 0.0f);
+    llrvec bit_message(n_edges, 0.0f);
+    llrvec check_message(n_edges, 0.0f);
+    std::cout << "Messages initialized." << std::endl;
     for (size_t i = 0; i < n_edges; ++i) {
         bit_message[i] = llr_in[col[i]];
     }
 
     // Iterative decoding
     for (int iter = 0; iter < n_iter; ++iter) {
-        //std::cout << "Iter " << iter << std::endl;
+        std::cout << "Iteration " << iter << std::endl;
         // Clip bit messages
         for (size_t i = 0; i < n_edges; ++i) {
             float temp = bit_message[i];
             bit_message[i] = (temp <= 0 ? -1 : 1) * std::max(0.001f, std::min(15.0f, std::abs(temp)));
             //std::cout << bit_message[i] << " ";
         }
-        //std::cout << std::endl;
+        std::cout << "Bit messages clipped." << std::endl;
 
         // Check node update
         std::fill(check_accum.begin(), check_accum.end(), 1.0f);
@@ -212,7 +213,7 @@ int ldpc::decode(llrvec &llr_in, int n_iter, llrvec &llr_out) {
             check_message[i] = 2.0 * std::atanh(check_accum[row[i]]/std::tanh(bit_message[i]/2.0));
             //std::cout << check_message[i] << " ";
         }
-        //std::cout << std::endl;
+        std::cout << "Check node update complete." << std::endl;
 
         // Variable node update
         //for (size_t i = 0; i < n_cols; ++i) {
@@ -227,7 +228,7 @@ int ldpc::decode(llrvec &llr_in, int n_iter, llrvec &llr_out) {
             bit_message[i] = bit_accum[col[i]] - check_message[i];
         }
     }
-    //std::cout << std::endl;
+    std::cout << "Variable node update complete." << std::endl;
 
     // Output
     llr_out = bit_accum;
@@ -252,7 +253,7 @@ int ldpc::decode(llrvec &llr_in, int n_iter, llrvec &llr_out) {
     }
 
     //for (const auto &val: checks) std::cout << val << " ";
-    //std::cout << std::endl;
+    std::cout << "Decoding finished." << std::endl;
 
     // Return true if and only if codeword
     return std::all_of(checks.begin(), checks.end(), [](int value) { return (value==0); });
