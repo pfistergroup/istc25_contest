@@ -11,24 +11,25 @@
 
 // Load code from file in alist format
 void ldpc::read_alist(const std::string &filename) {
-    // Open file
+    std::cout << "Opening file: " << filename << std::endl;
     std::ifstream file(filename);
     if (!file.is_open()) {
         std::cerr << "Error opening file: " << filename << std::endl;
         return;
     }
 
-    // Clear row / col vectors
+    std::cout << "File opened successfully." << std::endl;
     row.clear();
     col.clear();
 
-    // Read basic info
+    std::cout << "Reading basic info..." << std::endl;
     n_edges = 0;
     int max_col_weight, max_row_weight;
     file >> n_cols >> n_rows;
     file >> max_col_weight >> max_row_weight;
 
-    // Init and read row / col weights
+    std::cout << "n_cols: " << n_cols << ", n_rows: " << n_rows << std::endl;
+    std::cout << "max_col_weight: " << max_col_weight << ", max_row_weight: " << max_row_weight << std::endl;
     intvec row_weights(n_rows);
     intvec col_weights(n_cols);
     for (int j = 0; j < n_cols; ++j) {
@@ -37,7 +38,7 @@ void ldpc::read_alist(const std::string &filename) {
     for (int i = 0; i < n_rows; ++i) {
         file >> row_weights[i];
     }
-    // Read indices of non-zero entries in each column
+    std::cout << "Reading indices of non-zero entries in each column..." << std::endl;
     for (int j = 0; j < n_cols; ++j) {
         for (int i = 0; i < col_weights[j]; ++i) {
             int row_index;
@@ -47,7 +48,7 @@ void ldpc::read_alist(const std::string &filename) {
             n_edges++;
         }
     }
-    file.close();
+    std::cout << "Finished reading alist file." << std::endl;
 }
 
 void ldpc::sort_edges() {
