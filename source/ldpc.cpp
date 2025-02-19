@@ -160,63 +160,86 @@ int ldpc::decode(llrvec &llr_in, int n_iter, llrvec &llr_out) {
 
     // Initialize messages
     size_t n_edges = row.size(); // Calculate number of edges
-    llrvec llr_out_temp(llr_in);
     llrvec bit_accum(n_cols);
     llrvec check_accum(n_rows);
     llrvec bit_message(n_edges);
     llrvec check_message(n_edges);
+    for (size_t i = 0; i < n_edges; ++i) {
+        bit_message[i] = llr_in[col[i]];
+    }
 
     // Iterative decoding
-    std::fill(bit_message.begin(), bit_message.end(), -0.001);
     for (int iter = 0; iter < n_iter; ++iter) {
+        //std::cout << "Iter " << iter << std::endl;
         // Clip bit messages
         for (size_t i = 0; i < n_edges; ++i) {
             float temp = bit_message[i];
-            bit_message[i] = (temp < 0 ? -1 : 1) * std::max(0.001f, std::min(25.0f, std::abs(temp)));
+            bit_message[i] = (temp <= 0 ? -1 : 1) * std::max(0.001f, std::min(15.0f, std::abs(temp)));
+            //std::cout << bit_message[i] << " ";
         }
+        //std::cout << std::endl;
 
         // Check node update
-        std::fill(check_accum.begin(), check_accum.end(), 1.0);
+        std::fill(check_accum.begin(), check_accum.end(), 1.0f);
         for (size_t i = 0; i < n_edges; ++i) {
-            check_accum[row[i]] *= std::tanh(bit_message[col[i]]/2.0);
+            check_accum[row[i]] *= std::tanh(bit_message[i]/2.0);
         }
         for (size_t i = 0; i < n_edges; ++i) {
-            check_message[i] = 2.0 * std::atanh(check_accum[row[i]]/bit_message[col[i]]);
+            check_message[i] = 2.0 * std::atanh(check_accum[row[i]]/std::tanh(bit_message[i]/2.0));
+            //std::cout << check_message[i] << " ";
         }
+        //std::cout << std::endl;
 
         // Variable node update
+        //for (size_t i = 0; i < n_cols; ++i) {
+        //    bit_accum[i] = llr_in[i];
+        //}
         bit_accum = llr_in;
         for (size_t i = 0; i < n_edges; ++i) {
-            bit_accum[col[i]] += check_message[row[i]];
+            bit_accum[col[i]] += check_message[i];
         }
+        //std::cout << bit_accum[0] << " ";
         for (size_t i = 0; i < n_edges; ++i) {
-            bit_message[i] = bit_accum[col[i]] - check_message[row[i]];
+            bit_message[i] = bit_accum[col[i]] - check_message[i];
         }
     }
+    //std::cout << std::endl;
 
     // Output
     llr_out = bit_accum;
+    //for (size_t i = 0; i < n_cols; ++i) {
+    //    llr_out[i] = bit_accum[i];
+    //}
 
     // Check if codeword
-    std::vector<bool> checks(n_rows, true);
+    std::vector<int> checks(n_rows, 0);
     for (size_t i = 0; i < n_edges; ++i) {
       if (llr_out[col[i]] != 0) {
-        checks[row[i]] = (checks[row[i]] ^ (llr_out[col[i]] < 0));
+        checks[row[i]] ^= (llr_out[col[i]] < 0 ? 1 : 0);
       }
       else {
-        return false;
+        return 0;
       }
     }
     //for (const auto &val: checks) std::cout << val << " ";
     //std::cout << std::endl;
 
+    //for (size_t i = 0; i < n_rows; ++i) {
+    //    std::cout << checks[i] << " ";
+    //}
+    //std::cout << std::endl;
+
     // Return true if and only if codeword
-    return std::all_of(checks.begin(), checks.end(), [](bool value) { return value; });
+    return std::all_of(checks.begin(), checks.end(), [](int value) { return (value==0); });
 }
 
 void ldpc::encode(bitvec &info, bitvec &cw) {
     // This is a stub implementation
     // Actual implementation would encode the information bits into codeword bits
+    // For now, send 0 cw.
+    for (size_t i = 0; i < n_cols; ++i) {
+        cw[i] = 0;
+    }
 }
 
 

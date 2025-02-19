@@ -33,9 +33,15 @@ void test_no_error(ldpc &code) {
     }
 
     // Decode without errors
-    int result = code.decode(llr, 50, llr_est);
+    int result = code.decode(llr, 15, llr_est);
     std::cout << "Decoded LLRs: ";
-    for (const auto &llr_value : llr_est) std::cout << llr_value << " ";
+    for (const auto &llr_value : llr_est) {
+        if (llr_value <= 0) {
+            std::cout << "XXX" << llr_value << " XXX ";
+        } else
+            std::cout << llr_value << " ";
+        }
+    }
     std::cout << std::endl;
 
     if (result == 1) {
@@ -55,21 +61,18 @@ void test_single_error(ldpc &code) {
     std::cout << "Initial info bits: ";
     for (const auto &bit : info) std::cout << bit << " ";
     std::cout << std::endl;
-    code.encode(info, cw);
 
+    code.encode(info, cw);
     std::cout << "Encoded codeword: ";
     for (const auto &bit : cw) std::cout << bit << " ";
     std::cout << std::endl;
-    cw[0] = 1 - cw[0];
 
+    std::fill(llr.begin(), llr.end(), 3.0f);
+    llr[0] =  -llr[0];
+    int result = code.decode(llr, 15, llr);
     std::cout << "LLR output from decoder: ";
     for (const auto &llr_value : llr) std::cout << llr_value << " ";
     std::cout << std::endl;
-
-    std::cout << "Codeword with single error: ";
-    for (const auto &bit : cw) std::cout << bit << " ";
-    std::cout << std::endl;
-    int result = code.decode(llr, 50, llr);
     if (result == 1) {
         std::cout << "Test Single Error: Passed" << std::endl;
     } else {
@@ -90,7 +93,7 @@ int test_gaussian_noise(ldpc &code, float esno, int verbose) {
     for (size_t i = 0; i < cw.size(); ++i) {
         llr[i] = (cw[i] == 0 ? 1.0f : -1.0f) + distribution(generator);
     }
-    bool result = code.decode(llr, 50, llrout);
+    int result = code.decode(llr, 15, llrout);
 
     if (verbose) {
         std::cout << "Running Test Gaussian Noise..." << std::endl;
@@ -110,7 +113,7 @@ int test_gaussian_noise(ldpc &code, float esno, int verbose) {
         for (const auto &llr_value : llrout) std::cout << llr_value << " ";
         std::cout << std::endl;
 
-        if (result == true) {
+        if (result == 1) {
             std::cout << "Test Gaussian Noise: Passed" << std::endl;
         } else {
             std::cout << "Test Gaussian Noise: Failed" << std::endl;
@@ -183,7 +186,7 @@ int main(int argc, char* argv[])
     // Run test functions
     test_no_error(code); 
     test_single_error(code);
-    test_gaussian_noise(code, 5.0, 1); // Example ESNO value
+    test_gaussian_noise(code, 3.0, 1); // Example ESNO value
     test_alist_read_write(code);
 
     // Generate long ldpc code
@@ -196,9 +199,16 @@ int main(int argc, char* argv[])
     code.random(r, c, row_degrees, col_degrees);
     std::cout << "Generate code n=" << c << " m=" << r << std::endl;
 
+    // Test single error
+    test_single_error(code);
+
+    // Test Gaussian noise
+    test_gaussian_noise(code, 4.0, 1);
+
+    // Test gaussian noise
     int count = 0;
     for (int i=0; i<100; ++i) {
-        if (!test_gaussian_noise(code, 6.0, 0))
+        if (!test_gaussian_noise(code, 4.0, 0))
             count++;
     }
     std::cout << count << " errors out of 100 trials.\n"; 

@@ -22,7 +22,7 @@ class enc_dec
     void encode(bitvec &info, bitvec &cw);
 
     // Decode n llrs into n codeword bits and k info bits, return -1 if detected error
-    int decode(llrvec &llr, bitvec &cw_est, bitvec *info_est);
+    int decode(llrvec &llr, bitvec &cw_est, bitvec &info_est);
 };
 
 #endif // ENC_DEC_H
