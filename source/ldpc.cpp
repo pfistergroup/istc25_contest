@@ -52,6 +52,7 @@ void ldpc::load_alist(std::string &filename) {
         }
     }
     std::cout << "Total edges read: " << n_edges << std::endl;
+    std::cout << "Total edges read: " << n_edges << std::endl;
     file.close();
 }
 
