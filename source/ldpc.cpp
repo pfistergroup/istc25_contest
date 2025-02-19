@@ -35,6 +35,13 @@ void ldpc::load_alist(std::string &filename) {
         file >> col_weights[j];
     }
     // Read indices of non-zero entries (column-wise)
+    std::cout << "Reading alist file: " << filename << std::endl;
+    std::cout << "Number of columns: " << n_cols << ", Number of rows: " << n_rows << std::endl;
+    std::cout << "Column weights: ";
+    for (const auto &weight : col_weights) {
+        std::cout << weight << " ";
+    }
+    std::cout << std::endl;
     for (int j = 0; j < n_cols; ++j) {
         for (int i = 0; i < col_weights[j]; ++i) {
             int row_index;
@@ -44,6 +51,7 @@ void ldpc::load_alist(std::string &filename) {
             n_edges++;
         }
     }
+    std::cout << "Total edges read: " << n_edges << std::endl;
     file.close();
 }
 
