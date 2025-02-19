@@ -263,7 +263,10 @@ int ldpc::decode(llrvec &llr_in, int n_iter, llrvec &llr_out) {
     std::cout << std::endl;
 
     // Return true if and only if codeword
-    return std::all_of(checks.begin(), checks.end(), [](int value) { return (value==0); });
+    bool is_codeword = std::all_of(checks.begin(), checks.end(), [](int value) { return (value==0); });
+    std::cout << "Is codeword: " << is_codeword << std::endl;
+    std::cout << "Returning from decode function." << std::endl;
+    return is_codeword;
 }
 
 void ldpc::encode(bitvec &info, bitvec &cw) {
