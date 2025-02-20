@@ -6,17 +6,20 @@
 
 // Two types: bit and llr
 typedef int bit_type;
-typedef float llr_type;
+typedef int llr_type;
 using bitvec = std::vector<bit_type>;
 using llrvec = std::vector<llr_type>;
+using fltvec = std::vector<float>;
 using intvec = std::vector<int>;
-
 
 class enc_dec
 {
   public:
     // Setup for [n,k] code
     int init(int k, int n); 
+
+    // float LLR to integer representation
+    llr_type llr2int(float float_llr);
 
     // Encode k info bits into n codeword bits
     void encode(bitvec &info, bitvec &cw);

@@ -209,15 +209,18 @@ void ldpc::create_encoder() {
     // Actual implementation would create an encoder for the LDPC code
 }
 
+// Constants
+const float MIN_LLR = 1e-5f;
+const float MAX_LLR = 17.0f;
 
 // Belief-propagation decoding
-int ldpc::decode(llrvec &llr_in, int n_iter, llrvec &llr_out, int verbose) {
+int ldpc::decode(fltvec &llr_in, int n_iter, fltvec &llr_out, int verbose) {
 
     size_t n_edges = row.size(); // Calculate number of edges
-    llrvec bit_accum(n_cols, 0.0f);
-    llrvec check_accum(n_rows, 0.0f);
-    llrvec bit_message(n_edges, 0.0f);
-    llrvec check_message(n_edges, 0.0f);
+    fltvec bit_accum(n_cols, 0.0f);
+    fltvec check_accum(n_rows, 0.0f);
+    fltvec bit_message(n_edges, 0.0f);
+    fltvec check_message(n_edges, 0.0f);
     for (size_t i = 0; i < n_edges; ++i) {
         bit_message[i] = llr_in[col[i]];
     }
@@ -228,7 +231,7 @@ int ldpc::decode(llrvec &llr_in, int n_iter, llrvec &llr_out, int verbose) {
         // Clip bit messages
         for (size_t i = 0; i < n_edges; ++i) {
             float temp = bit_message[i];
-            bit_message[i] = (temp <= 0 ? -1 : 1) * std::max(0.001f, std::min(15.0f, std::abs(temp)));
+            bit_message[i] = (temp <= 0 ? -1 : 1) * std::max(MIN_LLR, std::min(MAX_LLR, std::abs(temp)));
             if (verbose) std::cout << bit_message[i] << " ";
         }
         if (verbose) std::cout << std::endl;
@@ -328,7 +331,7 @@ void ldpc_enc_dec::encode(bitvec &info, bitvec &cw) {
     ldpc_code.encode(info, cw);
 }
 
-int ldpc_enc_dec::decode(llrvec &llr, bitvec &cw_est, bitvec &info_est) {
+int ldpc_enc_dec::decode(fltvec &llr, bitvec &cw_est, bitvec &info_est) {
     // Use the LDPC decoder
     std::vector<llr_type> llr_vec(llr.begin(), llr.end());
     std::vector<llr_type> cw_est_vec(cw_est.begin(), cw_est.end());

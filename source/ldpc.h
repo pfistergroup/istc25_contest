@@ -36,7 +36,7 @@ class ldpc
     void create_encoder();
 
     // Belief-propagation decoding
-    int decode(llrvec &llr_in, int n_iter, llrvec &llr_out, int verbose = 0);
+    int decode(fltvec &llr_in, int n_iter, fltvec &llr_out, int verbose = 0);
  
     // Encode info bits into n_cols codeword bits
     void encode(bitvec &info, bitvec &cw);
@@ -62,7 +62,7 @@ class ldpc_enc_dec : public enc_dec
     void encode(bitvec &info, bitvec &cw);
 
     // Decode n llrs into n codeword bits and k info bits, return -1 if detected error
-    int decode(llrvec &llr, bitvec &cw_est, bitvec &info_est);
+    int decode(fltvec &llr, bitvec &cw_est, bitvec &info_est);
 };
 
 // MORE TEST FUNCTIONS
