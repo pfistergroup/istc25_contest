@@ -2,6 +2,7 @@
 #include "ldpc.h"
 
 ldpc code;
+int c, r;
 
 // Setup for [n,k] code
 int enc_dec::init(int k, int n) {
