@@ -204,9 +204,9 @@ int main(int argc, char* argv[])
 
     // Run test functions
     test_alist_read_write(code);
-    //test_no_error(code); 
-    //test_single_error(code);
-    //test_gaussian_noise(code, 3.0, 1); // Example ESNO value
+    test_no_error(code); 
+    test_single_error(code);
+    test_gaussian_noise(code, 3.0, 1); // Example ESNO value
 
     // Generate long ldpc code
     //r = 1000;
@@ -229,11 +229,11 @@ int main(int argc, char* argv[])
     std::cout << "After test_gaussian" << std::endl;
 
     // Test gaussian noise
-    //int count = 0;
-    //for (int i=0; i<100; ++i) {
-    //    if (!test_gaussian_noise(code, 4.5, 0))
-    //        count++;
-    //}
-    //std::cout << count << " errors out of 100 trials.\n"; 
+    int count = 0;
+    for (int i=0; i<100; ++i) {
+        if (!test_gaussian_noise(code, 4.5, 0))
+            count++;
+    }
+    std::cout << count << " errors out of 100 trials.\n"; 
 }
 
