@@ -315,7 +315,7 @@ void ldpc::encode(bitvec &info, bitvec &cw) {
     }
 }
 
-
+#if 0
 int ldpc_enc_dec::init(int k, int n) {
     // Initialize the LDPC code randomly
     intvec col_degrees(n, 3); // Example column degrees
@@ -333,11 +333,11 @@ void ldpc_enc_dec::encode(bitvec &info, bitvec &cw) {
 
 int ldpc_enc_dec::decode(fltvec &llr, bitvec &cw_est, bitvec &info_est) {
     // Use the LDPC decoder
-    std::vector<llr_type> llr_vec(llr.begin(), llr.end());
-    std::vector<llr_type> cw_est_vec(cw_est.begin(), cw_est.end());
+    std::vector<float> llr_vec(llr.begin(), llr.end());
+    std::vector<float> cw_est_vec(cw_est.begin(), cw_est.end());
     fltvec llr_float_vec(llr_vec.begin(), llr_vec.end());
     auto result = ldpc_code.decode(llr_float_vec, 50, cw_est_vec); // Assuming 50 iterations for decoding
     std::copy(cw_est_vec.begin(), cw_est_vec.end(), cw_est.begin());
     return result;
 }
-
+#endif
