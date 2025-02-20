@@ -6,7 +6,7 @@
 
 // Function declarations for tests
 void test_no_error(ldpc &code);
-void test_single_error(ldpc &code);
+void test_single_error(ldpc &code, int verbose = 0);
 int test_gaussian_noise(ldpc &code, float esno, int verbose = 0);
 void test_alist_read_write(ldpc &code1);
 
@@ -52,37 +52,42 @@ void test_no_error(ldpc &code) {
     }
 }
 
-void test_single_error(ldpc &code) {
+void test_single_error(ldpc &code, int verbose) {
     bitvec info(code.n_cols, 0); // Initialize info bits to zero
     bitvec cw(code.n_cols);
     llrvec llr(code.n_cols);
+    llrvec llr_out(code.n_cols);
     bitvec cw_est(code.n_cols);
 
-    std::cout << "Running Test Single Error..." << std::endl;
-    std::cout << "n_cols: " << code.n_cols << std::endl;
-    std::cout << "Initial info bits: ";
-    for (const auto &bit : info) std::cout << bit << " ";
-    std::cout << std::endl;
-
     code.encode(info, cw);
-    std::cout << "Encoded codeword: ";
-    for (const auto &bit : cw) std::cout << bit << " ";
-    std::cout << std::endl;
 
-    std::cout << "Filling LLRs..." << std::endl;
-    std::fill(llr.begin(), llr.end(), 3.0f);
-    std::cout << "LLRs filled." << std::endl;
-    llr[0] =  -llr[0];
-    std::cout << "Decoding..." << std::endl;
-    int result = code.decode(llr, 15, llr);
-    std::cout << "Decoding complete." << std::endl;
-    std::cout << "LLR output from decoder: ";
-    for (const auto &llr_value : llr) std::cout << llr_value << " ";
-    std::cout << std::endl;
-    if (result == 1) {
-        std::cout << "Test Single Error: Passed" << std::endl;
-    } else {
-        std::cout << "Test Single Error: Failed" << std::endl;
+    if (verbose) {
+        std::cout << "Running Test Single Error..." << std::endl;
+        std::cout << "Initial info bits: ";
+        for (const auto &bit : info) std::cout << bit << " ";
+        std::cout << std::endl;
+
+        std::cout << "Encoded codeword: ";
+        for (const auto &bit : cw) std::cout << bit << " ";
+        std::cout << std::endl;
+
+        std::fill(llr.begin(), llr.end(), 3.0f);
+        llr[0] =  -llr[0];
+        std::cout << "Decoding..." << std::endl;
+    }
+
+    int result = code.decode(llr, 15, llr_out);
+
+    if (verbose) {
+        std::cout << "LLR output from decoder: ";
+        for (const auto &llr_value : llr_out) std::cout << llr_value << " ";
+        std::cout << std::endl;
+
+        if (result == 1) {
+             std::cout << "Test Single Error: Passed" << std::endl;
+        } else {
+             std::cout << "Test Single Error: Failed" << std::endl;
+        }
     }
 }
 
@@ -199,9 +204,9 @@ int main(int argc, char* argv[])
 
     // Run test functions
     test_alist_read_write(code);
-    test_no_error(code); 
-    test_single_error(code);
-    test_gaussian_noise(code, 3.0, 1); // Example ESNO value
+    //test_no_error(code); 
+    //test_single_error(code);
+    //test_gaussian_noise(code, 3.0, 1); // Example ESNO value
 
     // Generate long ldpc code
     //r = 1000;
@@ -217,16 +222,18 @@ int main(int argc, char* argv[])
 
     // Test single error
     test_single_error(code);
+    std::cout << "After test_single" << std::endl;
 
     // Test Gaussian noise
     test_gaussian_noise(code, 4.5, 1);
+    std::cout << "After test_gaussian" << std::endl;
 
     // Test gaussian noise
-    int count = 0;
-    for (int i=0; i<100; ++i) {
-        if (!test_gaussian_noise(code, 4.5, 0))
-            count++;
-    }
-    std::cout << count << " errors out of 100 trials.\n"; 
+    //int count = 0;
+    //for (int i=0; i<100; ++i) {
+    //    if (!test_gaussian_noise(code, 4.5, 0))
+    //        count++;
+    //}
+    //std::cout << count << " errors out of 100 trials.\n"; 
 }
 

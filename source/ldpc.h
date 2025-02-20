@@ -21,7 +21,13 @@ class ldpc
     ldpc() : n_rows(0), n_cols(0), n_edges(0), rank(0) {}
 
     // Load code from file in alist format
-    void read_alist(const std::string &filename);
+    void read_alist(const std::string &filename, bool zero_pad = false);
+
+    // Write code to file in alist format
+    void write_alist(const std::string &filename, bool zero_pad = false);
+
+    // Sort the edge list lexicographically
+    void sort_edges();
 
     // Setup code with r rows, c cols, and row/col degrees given by rd and cd
     void random(int r,int c, std::vector<int> &rd, std::vector<int> &cd);
@@ -34,10 +40,6 @@ class ldpc
  
     // Encode info bits into n_cols codeword bits
     void encode(bitvec &info, bitvec &cw);
-    // Write code to file in alist format
-    void write_alist(const std::string &filename);
-    // Sort the edge list lexicographically
-    void sort_edges();
 };
 
 // Create enc_dec that uses ldpc

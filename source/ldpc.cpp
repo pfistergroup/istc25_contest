@@ -10,45 +10,68 @@
 #include "ldpc.h"
 
 // Load code from file in alist format
-void ldpc::read_alist(const std::string &filename) {
-    std::cout << "Opening file: " << filename << std::endl;
+void ldpc::read_alist(const std::string &filename, bool zero_pad) {
+    // Open file
     std::ifstream file(filename);
     if (!file.is_open()) {
         std::cerr << "Error opening file: " << filename << std::endl;
         return;
     }
 
-    std::cout << "File opened successfully." << std::endl;
+    // Clear row / col arrays
     row.clear();
     col.clear();
 
-    std::cout << "Reading basic info..." << std::endl;
+    // Read basic info
     n_edges = 0;
     int max_col_weight, max_row_weight;
     file >> n_cols >> n_rows;
     file >> max_col_weight >> max_row_weight;
 
-    std::cout << "n_cols: " << n_cols << ", n_rows: " << n_rows << std::endl;
-    std::cout << "max_col_weight: " << max_col_weight << ", max_row_weight: " << max_row_weight << std::endl;
-    intvec row_weights(n_rows);
+    // Read col / row weights
     intvec col_weights(n_cols);
+    intvec row_weights(n_rows);
     for (int j = 0; j < n_cols; ++j) {
         file >> col_weights[j];
     }
     for (int i = 0; i < n_rows; ++i) {
         file >> row_weights[i];
     }
-    std::cout << "Reading indices of non-zero entries in each column..." << std::endl;
-    for (int j = 0; j < n_cols; ++j) {
-        for (int i = 0; i < col_weights[j]; ++i) {
-            int row_index;
-            file >> row_index;
-            col.push_back(j);
-            row.push_back(row_index - 1); // Convert to zero-based index
-            n_edges++;
+
+    // Read in zero_pad format
+    if (zero_pad)
+    {
+        for (int j = 0; j < n_cols; ++j) {
+            for (int i = 0; i < col_weights[j]; ++i) {
+                int row_index;
+                file >> row_index;
+                if (row_index >= 1 && row_index <= n_rows) {
+                    col.push_back(j);
+                    row.push_back(row_index - 1); // Convert to zero-based index
+                    n_edges++;
+                }
+                else {
+                    std::cout << "ldpc::read_alist -- Row index out of range!" << std::endl;
+                }
+            }
         }
     }
-    std::cout << "Finished reading alist file." << std::endl;
+    else {
+        for (int j = 0; j < n_cols; ++j) {
+            for (int i = 0; i < max_col_weight; ++i) {
+                int row_index;
+                file >> row_index;
+                if (row_index != 0 && row_index <= n_rows) {
+                    col.push_back(j);
+                    row.push_back(row_index - 1); // Convert to zero-based index
+                    n_edges++;
+                }
+                else if (row_index != 0) {
+                    std::cout << "ldpc::read_alist -- Row index out of range!" << std::endl;
+                }
+            }
+        }
+    }
 }
 
 void ldpc::sort_edges() {
@@ -69,7 +92,7 @@ void ldpc::sort_edges() {
     }
 }
 
-void ldpc::write_alist(const std::string &filename) {
+void ldpc::write_alist(const std::string &filename, bool zero_pad) {
     // Open file
     std::ofstream file(filename);
     if (!file.is_open()) {
@@ -89,8 +112,10 @@ void ldpc::write_alist(const std::string &filename) {
     }
 
     // Write max column and max row weight
-    file << *std::max_element(col_weights.begin(), col_weights.end()) << " ";
-    file << *std::max_element(row_weights.begin(), row_weights.end()) << std::endl;
+    int max_col_weight =  *std::max_element(col_weights.begin(), col_weights.end());
+    int max_row_weight =  *std::max_element(row_weights.begin(), row_weights.end());
+    file << max_col_weight << " ";
+    file << max_row_weight << std::endl;
 
     // Write row and column weights
     for (int weight : col_weights) {
@@ -108,6 +133,9 @@ void ldpc::write_alist(const std::string &filename) {
             if (col[k] == j) {
                 file << row[k] + 1 << " "; // Convert to one-based index
             }
+            if (zero_pad) {
+              for (int i=0; i<max_col_weight-col_weights[j]; ++i) file << "0 ";
+            }
         }
         file << std::endl;
     }
@@ -117,6 +145,9 @@ void ldpc::write_alist(const std::string &filename) {
         for (size_t k = 0; k < row.size(); ++k) {
             if (row[k] == i) {
                 file << col[k] + 1 << " "; // Convert to one-based index
+            }
+            if (zero_pad) {
+              for (int j=0; j<max_row_weight-row_weights[i]; ++j) file << "0 ";
             }
         }
         file << std::endl;
@@ -182,27 +213,24 @@ void ldpc::create_encoder() {
 // Belief-propagation decoding
 int ldpc::decode(llrvec &llr_in, int n_iter, llrvec &llr_out) {
 
-    std::cout << "Decoding started..." << std::endl;
     size_t n_edges = row.size(); // Calculate number of edges
     llrvec bit_accum(n_cols, 0.0f);
     llrvec check_accum(n_rows, 0.0f);
     llrvec bit_message(n_edges, 0.0f);
     llrvec check_message(n_edges, 0.0f);
-    std::cout << "Messages initialized." << std::endl;
     for (size_t i = 0; i < n_edges; ++i) {
         bit_message[i] = llr_in[col[i]];
     }
 
     // Iterative decoding
     for (int iter = 0; iter < n_iter; ++iter) {
-        std::cout << "Iteration " << iter << std::endl;
+        //std::cout << "Iteration " << iter << std::endl;
         // Clip bit messages
         for (size_t i = 0; i < n_edges; ++i) {
             float temp = bit_message[i];
             bit_message[i] = (temp <= 0 ? -1 : 1) * std::max(0.001f, std::min(15.0f, std::abs(temp)));
             //std::cout << bit_message[i] << " ";
         }
-        std::cout << "Bit messages clipped." << std::endl;
 
         // Check node update
         std::fill(check_accum.begin(), check_accum.end(), 1.0f);
@@ -213,13 +241,12 @@ int ldpc::decode(llrvec &llr_in, int n_iter, llrvec &llr_out) {
             check_message[i] = 2.0 * std::atanh(check_accum[row[i]]/std::tanh(bit_message[i]/2.0));
             //std::cout << check_message[i] << " ";
         }
-        std::cout << "Check node update complete." << std::endl;
 
         // Variable node update
-        //for (size_t i = 0; i < n_cols; ++i) {
-        //    bit_accum[i] = llr_in[i];
-        //}
-        bit_accum = llr_in;
+        for (size_t i = 0; i < n_cols; ++i) {
+            bit_accum[i] = llr_in[i];
+        }
+        //bit_accum = llr_in;
         for (size_t i = 0; i < n_edges; ++i) {
             bit_accum[col[i]] += check_message[i];
         }
@@ -228,10 +255,12 @@ int ldpc::decode(llrvec &llr_in, int n_iter, llrvec &llr_out) {
             bit_message[i] = bit_accum[col[i]] - check_message[i];
         }
     }
-    std::cout << "Variable node update complete." << std::endl;
 
     // Output
-    llr_out = bit_accum;
+    for (size_t j = 0; j < n_cols; ++j) {
+        llr_out[j] = bit_accum[j];
+    }
+    //llr_out = bit_accum;
     std::cout << "Checking if codeword..." << std::endl;
     //for (size_t i = 0; i < n_cols; ++i) {
     //    if (llr_out[i] <= 0.0f) {
