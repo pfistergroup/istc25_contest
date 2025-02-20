@@ -147,7 +147,7 @@ void run_test(int t, decoder_stats &stats)
 
     // Decode message
     auto dec_start = std::chrono::high_resolution_clock::now();
-    int detect = entry.decode(llr, cw_est, &info_est);
+    int detect = entry.decode(llr, cw_est, info_est);
     auto dec_time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - dec_start).count();
 
     // Count number of bit errors
