@@ -221,7 +221,7 @@ int main(int argc, char* argv[])
     code.read_alist("CCSDS_ldpc_n256_k128.alist");
 
     // Test single error
-    test_single_error(code);
+    test_single_error(code, 0);
     std::cout << "After test_single" << std::endl;
 
     // Test Gaussian noise
