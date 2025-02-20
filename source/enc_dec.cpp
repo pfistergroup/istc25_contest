@@ -1,3 +1,4 @@
+#include <cmath>
 #include "enc_dec.h"
 #include "ldpc.h"
 
@@ -55,9 +56,9 @@ int enc_dec::decode(llrvec &llr, bitvec &cw_est, bitvec &info_est) {
 
     // Decode using ldpc
     fltvec float_llr(code.n_cols);
-    for (int j=0; j<code.n_cols; ++j) float_llr = (25.0/32768)*llr[j];
+    for (int j=0; j<code.n_cols; ++j) float_llr[j] = (25.0/32768)*llr[j];
     auto result =  code.decode(float_llr, 20, float_llr, 0);
-    for (int j=0; j<code.n_cols; ++j) cw_est[j] = (float_llr <= 0 ? 1 : 0);
+    for (int j=0; j<code.n_cols; ++j) cw_est[j] = (float_llr[j] <= 0 ? 1 : 0);
     for (int j=0; j<code.n_cols-code.n_rows; ++j) info_est[j] = cw_est[j];
     return result;
 }
