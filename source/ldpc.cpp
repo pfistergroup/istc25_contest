@@ -211,7 +211,7 @@ void ldpc::create_encoder() {
 
 
 // Belief-propagation decoding
-int ldpc::decode(llrvec &llr_in, int n_iter, llrvec &llr_out) {
+int ldpc::decode(llrvec &llr_in, int n_iter, llrvec &llr_out, int verbose) {
 
     size_t n_edges = row.size(); // Calculate number of edges
     llrvec bit_accum(n_cols, 0.0f);
@@ -224,13 +224,14 @@ int ldpc::decode(llrvec &llr_in, int n_iter, llrvec &llr_out) {
 
     // Iterative decoding
     for (int iter = 0; iter < n_iter; ++iter) {
-        //std::cout << "Iteration " << iter << std::endl;
+        if (verbose) std::cout << "Iteration " << iter << std::endl;
         // Clip bit messages
         for (size_t i = 0; i < n_edges; ++i) {
             float temp = bit_message[i];
             bit_message[i] = (temp <= 0 ? -1 : 1) * std::max(0.001f, std::min(15.0f, std::abs(temp)));
-            //std::cout << bit_message[i] << " ";
+            if (verbose) std::cout << bit_message[i] << " ";
         }
+        if (verbose) std::cout << std::endl;
 
         // Check node update
         std::fill(check_accum.begin(), check_accum.end(), 1.0f);
@@ -239,8 +240,9 @@ int ldpc::decode(llrvec &llr_in, int n_iter, llrvec &llr_out) {
         }
         for (size_t i = 0; i < n_edges; ++i) {
             check_message[i] = 2.0 * std::atanh(check_accum[row[i]]/std::tanh(bit_message[i]/2.0));
-            //std::cout << check_message[i] << " ";
+            if (verbose) std::cout << check_message[i] << " ";
         }
+        if (verbose) std::cout << std::endl;
 
         // Variable node update
         for (size_t i = 0; i < n_cols; ++i) {
@@ -250,7 +252,6 @@ int ldpc::decode(llrvec &llr_in, int n_iter, llrvec &llr_out) {
         for (size_t i = 0; i < n_edges; ++i) {
             bit_accum[col[i]] += check_message[i];
         }
-        //std::cout << bit_accum[0] << " ";
         for (size_t i = 0; i < n_edges; ++i) {
             bit_message[i] = bit_accum[col[i]] - check_message[i];
         }
@@ -261,7 +262,7 @@ int ldpc::decode(llrvec &llr_in, int n_iter, llrvec &llr_out) {
         llr_out[j] = bit_accum[j];
     }
     //llr_out = bit_accum;
-    std::cout << "Checking if codeword..." << std::endl;
+    if (verbose) std::cout << "Checking if codeword..." << std::endl;
     //for (size_t i = 0; i < n_cols; ++i) {
     //    if (llr_out[i] <= 0.0f) {
     //        count++;
@@ -281,15 +282,17 @@ int ldpc::decode(llrvec &llr_in, int n_iter, llrvec &llr_out) {
       }
     }
 
-    std::cout << "Check results: ";
-    for (const auto &val: checks) std::cout << val << " ";
-    std::cout << std::endl;
-    std::cout << "Decoding finished." << std::endl;
-    std::cout << "Output LLRs: ";
-    for (const auto &llr_value : llr_out) {
-        std::cout << llr_value << " ";
+    if (verbose) {
+        std::cout << "Check results: ";
+        for (const auto &val: checks) std::cout << val << " ";
+        std::cout << std::endl;
+        std::cout << "Decoding finished." << std::endl;
+        std::cout << "Output LLRs: ";
+        for (const auto &llr_value : llr_out) {
+            std::cout << llr_value << " ";
+        }
+        std::cout << std::endl;
     }
-    std::cout << std::endl;
 
     // Return true if and only if codeword
     bool is_codeword = std::all_of(checks.begin(), checks.end(), [](int value) { return (value==0); });
