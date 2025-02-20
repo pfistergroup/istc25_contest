@@ -205,7 +205,7 @@ int main(int argc, char* argv[])
     // Run test functions
     test_alist_read_write(code);
     test_no_error(code); 
-    test_single_error(code);
+    test_single_error(code, 0);
     test_gaussian_noise(code, 3.0, 1); // Example ESNO value
 
     // Generate long ldpc code
