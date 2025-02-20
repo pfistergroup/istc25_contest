@@ -4,7 +4,11 @@
 #include "enc_dec.h"
 #include <string>
 #include <vector>
+#include <vector>
 #include <string>
+
+using intvec = std::vector<int>;
+using fltvec = std::vector<float>;
 
 
 // Class for generating, encoding, and decoding binary low-density parity-check codes
