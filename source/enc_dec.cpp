@@ -36,8 +36,7 @@ int enc_dec::init(int k, int n) {
     return 0;
 }
 
-// float LLR to integer representation
-llr_type llr2int(float float_llr) {
+llr_type enc_dec::llr2int(float float_llr) {
     // Contestants should replace this code
     //   This code should convert a single LLR to the integer representation used by decoder
     return std::round((32768/25.0)*float_llr);
