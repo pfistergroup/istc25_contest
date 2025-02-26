@@ -229,7 +229,7 @@ void run_single_test(int test_number) {
               << "Decoding Time (\xC2\xB5s): " << sum[3]  << "/" << n_sample << " = " << mean[3] << ", " << std::endl;
 }
 
-void run_test_file(std::string filename) {
+void run_test_file(std::string filename, std::string output_filename) {
     srand(static_cast<unsigned int>(time(0))); // Seed random number generator
     decoder_stats run_stats;
 
@@ -238,6 +238,17 @@ void run_test_file(std::string filename) {
     if (!file.is_open()) {
         std::cerr << "Error opening file: " << filename << std::endl;
         return;
+    }
+
+    // Setup output
+    std::ostream* outputStream;
+    std::ofstream fileStream;
+    fileStream.open(output_filename);
+    if (fileStream.is_open()) {
+      outputStream = &fileStream;
+    }
+    else {
+      outputStream = &std::cout;
     }
 
     // Start line by line file read until no more lines
@@ -265,7 +276,7 @@ void run_test_file(std::string filename) {
         }
 
         // Report results
-        std::cout << "Test with parameters (k=" << k << ", n=" << n << ", esno=" << esno << ", n_block=" << n_block << "): "
+        *outputStream << "Test with parameters (k=" << k << ", n=" << n << ", esno=" << esno << ", n_block=" << n_block << "): "
                   << "Block: " << sum[0] << "/" << n_sample << " = " << mean[0] << ", "
                   << "Info Bit Errors: " << sum[1]  << "/" << n_sample*k << " = " << k*mean[1] << ", "
                   << "Encoding Time (ns): " << sum[2]  << "/" << n_sample << " = " << mean[2] << ", "
@@ -281,6 +292,7 @@ OptionSpec options[] = {
     {"-s", "--esno",  true,  "Use this Es/N0"},
     {"-m", "--blocks",  true,  "Run this number of blocks"},
     {"-f", "--file",  true,  "Run tests as described in file"},
+    {"-o", "--output",  true,  "Write output to a file with this filename"},
     {nullptr, nullptr, false, nullptr} // sentinel to mark end
 };
 
@@ -298,14 +310,22 @@ int main(int argc, char* argv[])
     }
 
     // Declare test_file variable
+    std::string output_file;
     std::string test_file;
 
-    // Handle file argument
-    auto iter = parsedOptions.find("file");
+    // Handle output file argument
+    auto iter = parsedOptions.find("output");
+    if (iter != parsedOptions.end()) {
+        output_file = iter->second;
+        std::cout << "Output file = " << output_file << std::endl;
+        run_test_file(test_file,output_file);
+    }
+    // Handle input file argument
+    iter = parsedOptions.find("file");
     if (iter != parsedOptions.end()) {
         test_file = iter->second;
-        std::cout << "File = " << test_file << std::endl;
-        run_test_file(test_file);
+        std::cout << "Input file = " << test_file << std::endl;
+        run_test_file(test_file,output_file);
     }
     // Handle EsN0 and blocks parameters
     iter = parsedOptions.find("esno");
