@@ -221,6 +221,7 @@ int ldpc::decode(fltvec &llr_in, int n_iter, fltvec &llr_out, int verbose) {
     fltvec check_accum(n_rows, 0.0f);
     fltvec bit_message(n_edges, 0.0f);
     fltvec check_message(n_edges, 0.0f);
+    bool is_codeword;
     for (size_t i = 0; i < n_edges; ++i) {
         bit_message[i] = llr_in[col[i]];
     }
@@ -247,6 +248,10 @@ int ldpc::decode(fltvec &llr_in, int n_iter, fltvec &llr_out, int verbose) {
         }
         if (verbose) std::cout << std::endl;
 
+        // Check for early termination
+        is_codeword = std::all_of(check_accum.begin(), check_accum.end(), [](float value) { return (value>0); });
+        if (is_codeword) break;
+      
         // Variable node update
         for (size_t i = 0; i < n_cols; ++i) {
             bit_accum[i] = llr_in[i];
@@ -275,20 +280,20 @@ int ldpc::decode(fltvec &llr_in, int n_iter, fltvec &llr_out, int verbose) {
     //std::cout << "Count " << count << std::endl;
 
     // Check if codeword
-    std::vector<int> checks(n_rows, 0);
-    for (size_t i = 0; i < n_edges; ++i) {
-      if (llr_out[col[i]] != 0.0f) {
-        checks[row[i]] ^= (llr_out[col[i]] < 0.0f ? 1 : 0);
-      }
-      else {
-        return 0;
-      }
-    }
+    //std::vector<int> checks(n_rows, 0);
+    //for (size_t i = 0; i < n_edges; ++i) {
+    //  if (llr_out[col[i]] != 0.0f) {
+    //    checks[row[i]] ^= (llr_out[col[i]] < 0.0f ? 1 : 0);
+    //  }
+    //  else {
+    //    return 0;
+    //  }
+    //}
 
     if (verbose) {
-        std::cout << "Check results: ";
-        for (const auto &val: checks) std::cout << val << " ";
-        std::cout << std::endl;
+        //std::cout << "Check results: ";
+        //for (const auto &val: checks) std::cout << val << " ";
+        //std::cout << std::endl;
         std::cout << "Decoding finished." << std::endl;
         std::cout << "Output LLRs: ";
         for (const auto &llr_value : llr_out) {
@@ -298,7 +303,7 @@ int ldpc::decode(fltvec &llr_in, int n_iter, fltvec &llr_out, int verbose) {
     }
 
     // Return true if and only if codeword
-    bool is_codeword = std::all_of(checks.begin(), checks.end(), [](int value) { return (value==0); });
+    //bool is_codeword = std::all_of(checks.begin(), checks.end(), [](int value) { return (value==0); });
     if (verbose) {
         std::cout << "Is codeword: " << is_codeword << std::endl;
         std::cout << "Returning from decode function." << std::endl;
