@@ -6,6 +6,8 @@
 #include <vector>
 #include <random>
 #include <array>
+#include <fstream>
+#include <sstream>
 #include "enc_dec.h"
 #include "ldpc.h"
 #include "argmin.h"
@@ -32,7 +34,7 @@ test_point contest[N_TEST] =
   {64,128,1.0,2000},   // k=64 R=1/2
   {128,256,1.0,2000},  // k=128 R=1/2
   {256,512,1.0,2000},  // k=256 R=1/2
-  {512,1024,1.0},2000}, // k=512 R=1/2
+  {512,1024,1.0,2000}, // k=512 R=1/2
   {64,80,3.0,2000},    // k=64 R=4/5
   {128,160,3.0,2000},  // k=128 R=4/5
   {256,320,3.0,2000},  // k=256 R=4/5
@@ -137,21 +139,20 @@ void run_test(int k, int n, float esno, int n_block, decoder_stats &stats)
   for (int i = 0; i < n_block; ++i)
   {
     // Generate random binary message of length test.k
-    for (int j = 0; j < test.k; ++j) {
+    for (int j = 0; j < k; ++j) {
         info[j] = distribution(generator); // Random binary message
-        info[j] = 0;
     }
 
     // Encode message
     auto enc_start = std::chrono::high_resolution_clock::now();
     entry.encode(info, cw);
     auto enc_time = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - enc_start).count();
- 
+
     // Transmit message
     channel(cw, esno, float_llr);
 
     // Convert int llr format
-    for (int j = 0; j < test.n; ++j) llr[j] = entry.llr2int(float_llr[j]);
+    for (int j = 0; j < n; ++j) llr[j] = entry.llr2int(float_llr[j]);
 
     // Decode message
     auto dec_start = std::chrono::high_resolution_clock::now();
@@ -160,7 +161,7 @@ void run_test(int k, int n, float esno, int n_block, decoder_stats &stats)
 
     // Count number of bit errors
     int bit_err = 0;
-    for (int j = 0; j < test.k; ++j) {
+    for (int j = 0; j < k; ++j) {
         if (info[j] != info_est[j]) {
             ++bit_err;
         }
@@ -203,7 +204,7 @@ void run_test_number(int t, decoder_stats &stats)
   if (default_esno > 0.0) esno = default_esno;
   if (default_nblock > 0) n_block = default_nblock;
 
-  run_test(test.k, test.n, esno, n_block, stats)
+  run_test(test.k, test.n, esno, n_block, stats);
 }
 
 
@@ -295,6 +296,9 @@ int main(int argc, char* argv[])
       case 2:
         return 0;
     }
+
+    // Declare test_file variable
+    std::string test_file;
 
     // Handle file argument
     auto iter = parsedOptions.find("file");
