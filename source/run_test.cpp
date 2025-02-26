@@ -26,7 +26,6 @@ struct test_point
 // Define set of tests
 test_point contest[N_TEST] =
 {
-//  {32,64,1.0,2000},    // Simple test parameters (k,n,esno_list,n_block_list)
   {64,256,1.0,2000},   // k=64 R=1/4
   {128,512,0.1,2000},  // k=128 R=1/4
   {256,1024,0.1,2000}, // k=256 R=1/4
@@ -72,12 +71,23 @@ template <typename T,int N> class stats
       }
       return sum;
     }
+
+    // stream output
+    void print(std::ostream* sout)
+    {
+      for (const auto& sample : data) {
+          for (int i = 0; i < N; ++i) {
+              *sout << sample[i] << " ";
+          }
+          *sout << std::endl;
+      }
+    }
 };
     
 // Enumerate statistics to collect
 enum dec_stat : int
 {
-  DET = 1,
+  BLK = 1,
   BIT = 2,
   ENCT = 3,
   DECT = 4
@@ -87,8 +97,9 @@ enum dec_stat : int
 class decoder_stats : public stats<int,4>
 {
   public:
-    void update(int det, int bit, int enc, int dec) {
-        std::array<int, 4> dummy = {det, bit, enc, dec};
+    typedef std::array<int, 4> statvec;
+    void update(int blk, int bit, int enc, int dec) {
+        statvec dummy = {blk, bit, enc, dec};
         stats<int, 4>::add_sample(dummy);
     }
     //std::vector<std::array<int, 4>> get_data() const { return data; }
@@ -281,6 +292,12 @@ void run_test_file(std::string filename, std::string output_filename) {
                   << "Info Bit Errors: " << sum[1]  << "/" << n_sample*k << " = " << k*mean[1] << ", "
                   << "Encoding Time (ns): " << sum[2]  << "/" << n_sample << " = " << mean[2] << ", "
                   << "Decoding Time (\xC2\xB5s): " << sum[3]  << "/" << n_sample << " = " << mean[3] << ", " << std::endl;
+
+        // Write stats
+        std::stringstream suffix;
+        suffix << k << "_" << n << "_" << n_block;
+        statStream.open(output_filename+suffix);
+        run_stats.print(&statStream);
     }
     file.close();
 }
