@@ -11,33 +11,32 @@
 #include "argmin.h"
 
 const int N_TEST = 12;
-const int N_ESNO = 1;
 
 // Define structure for each test point, specifying code parameters and test conditions
 struct test_point
 {
   int k; // Number of information bits
   int n; // Number of codeword bits
-  float esno[N_ESNO];  // Array of SNR values for testing
-  int n_block[N_ESNO]; // Array of block sizes for testing
+  float esno;  // Array of SNR values for testing
+  int n_block; // Array of block sizes for testing
 };
 
 // Define set of tests
 test_point contest[N_TEST] =
 {
-//  {32,64,{5.0,10.0},{10,20}},    // Simple test parameters (k,n,esno_list,n_block_list)
-  {64,256,{1.0},{2000}},   // k=64 R=1/4
-  {128,512,{0.1},{2000}},  // k=128 R=1/4
-  {256,1024,{0.1},{2000}}, // k=256 R=1/4
-  {512,2048,{0.1},{2000}}, // k=512 R=1/4
-  {64,128,{1.0},{2000}},   // k=64 R=1/2
-  {128,256,{1.0},{2000}},  // k=128 R=1/2
-  {256,512,{1.0},{2000}},  // k=256 R=1/2
-  {512,1024,{1.0},{2000}}, // k=512 R=1/2
-  {64,80,{3.0},{2000}},    // k=64 R=4/5
-  {128,160,{3.0},{2000}},  // k=128 R=4/5
-  {256,320,{3.0},{2000}},  // k=256 R=4/5
-  {512,640,{3.0},{2000}}   // k=512 R=4/5
+//  {32,64,1.0,2000},    // Simple test parameters (k,n,esno_list,n_block_list)
+  {64,256,1.0,2000},   // k=64 R=1/4
+  {128,512,0.1,2000},  // k=128 R=1/4
+  {256,1024,0.1,2000}, // k=256 R=1/4
+  {512,2048,0.1,2000}, // k=512 R=1/4
+  {64,128,1.0,2000},   // k=64 R=1/2
+  {128,256,1.0,2000},  // k=128 R=1/2
+  {256,512,1.0,2000},  // k=256 R=1/2
+  {512,1024,1.0},2000}, // k=512 R=1/2
+  {64,80,3.0,2000},    // k=64 R=4/5
+  {128,160,3.0,2000},  // k=128 R=4/5
+  {256,320,3.0,2000},  // k=256 R=4/5
+  {512,640,3.0,2000}   // k=512 R=4/5
 };
 
 // Global defaults
@@ -108,7 +107,72 @@ void channel(const bitvec& cw, float esno, fltvec& llr_out) {
 }
 
 // Run all the tests in one round
-void run_test(int t, decoder_stats &stats)
+void run_test(int k, int n, float esno, int n_block, decoder_stats &stats)
+{
+  // Allocate variables
+  bitvec info(k);
+  bitvec cw(n);
+  fltvec float_llr(n);
+  llrvec llr(n);
+  bitvec cw_est(n);
+  bitvec info_est(n);
+
+  // Setup binary RNG
+  std::default_random_engine generator(std::chrono::system_clock::now().time_since_epoch().count());
+  std::uniform_int_distribution<int> distribution(0, 1);
+
+  // Construct encoder-decoder
+  enc_dec entry;
+
+  // Init encoder and decoder for entry
+  if (entry.init(k,n) != 0) {
+    // This submission does not handle this code
+    std::cout << "Handle exception" << std::endl;
+  }
+
+  // Setup
+  stats.clear();
+
+  // Run tests
+  for (int i = 0; i < n_block; ++i)
+  {
+    // Generate random binary message of length test.k
+    for (int j = 0; j < test.k; ++j) {
+        info[j] = distribution(generator); // Random binary message
+        info[j] = 0;
+    }
+
+    // Encode message
+    auto enc_start = std::chrono::high_resolution_clock::now();
+    entry.encode(info, cw);
+    auto enc_time = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - enc_start).count();
+ 
+    // Transmit message
+    channel(cw, esno, float_llr);
+
+    // Convert int llr format
+    for (int j = 0; j < test.n; ++j) llr[j] = entry.llr2int(float_llr[j]);
+
+    // Decode message
+    auto dec_start = std::chrono::high_resolution_clock::now();
+    int detect = entry.decode(llr, cw_est, info_est);
+    auto dec_time = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - dec_start).count();
+
+    // Count number of bit errors
+    int bit_err = 0;
+    for (int j = 0; j < test.k; ++j) {
+        if (info[j] != info_est[j]) {
+            ++bit_err;
+        }
+    }
+
+    // Update statistics
+    stats.update(1-detect, bit_err, enc_time, dec_time);
+  }
+}
+
+// Run all the tests in one round
+void run_test_number(int t, decoder_stats &stats)
 {
   // Allocate variables
   test_point &test = contest[t];
@@ -134,47 +198,12 @@ void run_test(int t, decoder_stats &stats)
 
   // Setup
   stats.clear();
-  float esno = test.esno[0];
-  int n_block = test.n_block[0];
+  float esno = test.esno;
+  int n_block = test.n_block;
   if (default_esno > 0.0) esno = default_esno;
   if (default_nblock > 0) n_block = default_nblock;
 
-  // Run tests
-  for (int i = 0; i < n_block; ++i)
-  {
-    // Generate random binary message of length test.k
-    for (int j = 0; j < test.k; ++j) {
-        info[j] = distribution(generator); // Random binary message
-        info[j] = 0;
-    }
-
-    // Encode message
-    auto enc_start = std::chrono::high_resolution_clock::now();
-    entry.encode(info, cw);
-    auto enc_time = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - enc_start).count();
- 
-    // Transmit message
-    channel(cw, esno, float_llr);
-
-    // Convert int llr format
-    for (int j = 0; j < test.n; ++j) llr[j] = entry.llr2int(float_llr[j]);
-
-    // Decode message
-    auto dec_start = std::chrono::high_resolution_clock::now();
-    int detect = entry.decode(llr, cw_est, info_est);
-    auto dec_time = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - dec_start).count();
-
-    // Count number of bit errors
-    int bit_err = 0;
-    for (int j = 0; j < test.k; ++j) {
-        if (info[j] != info_est[j]) {
-            ++bit_err;
-        }
-    }
-
-    // Update statistics
-    stats.update(detect, bit_err, enc_time, dec_time);
-  }
+  run_test(test.k, test.n, esno, n_block, stats)
 }
 
 
@@ -183,19 +212,54 @@ void run_single_test(int test_number) {
     decoder_stats run_stats;
 
     // Run the specified test and output results
-    run_test(test_number, run_stats);
+    test_point &test = contest[test_number];
+    run_test(test.n, test.k, test.esno, test.n_block, run_stats);
     int n_sample = run_stats.n_sample();
     auto sum = run_stats.sum();
     std::array<float, 4> mean;
     for (int i = 0; i < 4; ++i) {
         mean[i] = ((float)sum[i]) / n_sample;
     }
-    std::cout << n_sample << std::endl;
+    //std::cout << n_sample << std::endl;
     std::cout << "Test " << test_number << ": "
               << "Block: " << sum[0] << "/" << n_sample << " = " << mean[0] << ", "
               << "Info Bit Errors: " << sum[1]  << "/" << n_sample*contest[test_number].k << " = " << contest[test_number].k*mean[1] << ", "
               << "Encoding Time (ns): " << sum[2]  << "/" << n_sample << " = " << mean[2] << ", "
-              << "Decoding Time (ns): " << sum[3]  << "/" << n_sample << " = " << mean[3] << ", " << std::endl;
+              << "Decoding Time (\xC2\xB5s): " << sum[3]  << "/" << n_sample << " = " << mean[3] << ", " << std::endl;
+}
+
+void run_test_file(std::string filename) {
+    srand(static_cast<unsigned int>(time(0))); // Seed random number generator
+    decoder_stats run_stats;
+
+    // Open test parameter file using filename
+    //   add code here
+
+    // Start line by line file read until no more lines
+    //   add code here
+
+      // For each line, read 4 parameters: int k, int n, float esno, int n_block
+      //   add code here
+
+      // Run test with given parameters
+      //   add code here to call run_test(), results returned in run_stats
+
+      // Process results
+      int n_sample = run_stats.n_sample();
+      auto sum = run_stats.sum();
+      std::array<float, 4> mean;
+      for (int i = 0; i < 4; ++i) {
+        mean[i] = ((float)sum[i]) / n_sample;
+      }
+
+      // Report results
+      std::cout << "Test " << test_number << ": "
+                << "Block: " << sum[0] << "/" << n_sample << " = " << mean[0] << ", "
+                << "Info Bit Errors: " << sum[1]  << "/" << n_sample*contest[test_number].k << " = " << contest[test_number].k*mean[1] << ", "
+                << "Encoding Time (ns): " << sum[2]  << "/" << n_sample << " = " << mean[2] << ", "
+                << "Decoding Time (\xC2\xB5s): " << sum[3]  << "/" << n_sample << " = " << mean[3] << ", " << std::endl;
+
+  // end line by line file read
 }
 
 // Setup option for argmin parsing
@@ -204,6 +268,7 @@ OptionSpec options[] = {
     {"-t", "--test",  true,  "Choose the test or use 'all'"},
     {"-s", "--esno",  true,  "Use this Es/N0"},
     {"-m", "--blocks",  true,  "Run this number of blocks"},
+    {"-f", "--file",  true,  "Run tests as described in file"},
     {nullptr, nullptr, false, nullptr} // sentinel to mark end
 };
 
@@ -220,8 +285,15 @@ int main(int argc, char* argv[])
         return 0;
     }
 
+    // Handle file argument
+    auto iter = parsedOptions.find("file");
+    if (iter != parsedOptions.end()) {
+        test_file = iter->second;
+        std::cout << "File = " << test_file << std::endl;
+        run_test_file(test_file);
+    }
     // Handle EsN0 and blocks parameters
-    auto iter = parsedOptions.find("esno");
+    iter = parsedOptions.find("esno");
     if (iter != parsedOptions.end()) {
         default_esno = std::stof(iter->second);
         std::cout << "EsN0 = " << default_esno << std::endl;
@@ -231,6 +303,7 @@ int main(int argc, char* argv[])
         default_nblock = std::stoi(iter->second);
         std::cout << "n_block = " << default_nblock << std::endl;
     }
+    // Handle test argument
     iter = parsedOptions.find("test");
     if (iter != parsedOptions.end()) {
         if (iter->second == "all") {
