@@ -294,9 +294,8 @@ void run_test_file(std::string filename, std::string output_filename) {
                   << "Decoding Time (\xC2\xB5s): " << sum[3]  << "/" << n_sample << " = " << mean[3] << ", " << std::endl;
 
         // Write stats
-        std::stringstream suffix;
-        suffix << k << "_" << n << "_" << n_block;
-        statStream.open(output_filename+suffix);
+        std::string suffix = std::to_string(k) + "_" + std::to_string(n) + "_" + std::to_string(n_block);
+        std::ofstream statStream(output_filename + suffix);
         run_stats.print(&statStream);
     }
     file.close();
