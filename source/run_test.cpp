@@ -233,33 +233,44 @@ void run_test_file(std::string filename) {
     decoder_stats run_stats;
 
     // Open test parameter file using filename
-    //   add code here
+    std::ifstream file(filename);
+    if (!file.is_open()) {
+        std::cerr << "Error opening file: " << filename << std::endl;
+        return;
+    }
 
     // Start line by line file read until no more lines
-    //   add code here
+    std::string line;
+    while (std::getline(file, line)) {
+        std::istringstream iss(line);
+        int k, n, n_block;
+        float esno;
 
-      // For each line, read 4 parameters: int k, int n, float esno, int n_block
-      //   add code here
+        // For each line, read 4 parameters: int k, int n, float esno, int n_block
+        if (!(iss >> k >> n >> esno >> n_block)) {
+            std::cerr << "Error reading line: " << line << std::endl;
+            continue;
+        }
 
-      // Run test with given parameters
-      //   add code here to call run_test(), results returned in run_stats
+        // Run test with given parameters
+        run_test(k, n, esno, n_block, run_stats);
 
-      // Process results
-      int n_sample = run_stats.n_sample();
-      auto sum = run_stats.sum();
-      std::array<float, 4> mean;
-      for (int i = 0; i < 4; ++i) {
-        mean[i] = ((float)sum[i]) / n_sample;
-      }
+        // Process results
+        int n_sample = run_stats.n_sample();
+        auto sum = run_stats.sum();
+        std::array<float, 4> mean;
+        for (int i = 0; i < 4; ++i) {
+            mean[i] = ((float)sum[i]) / n_sample;
+        }
 
-      // Report results
-      std::cout << "Test " << test_number << ": "
-                << "Block: " << sum[0] << "/" << n_sample << " = " << mean[0] << ", "
-                << "Info Bit Errors: " << sum[1]  << "/" << n_sample*contest[test_number].k << " = " << contest[test_number].k*mean[1] << ", "
-                << "Encoding Time (ns): " << sum[2]  << "/" << n_sample << " = " << mean[2] << ", "
-                << "Decoding Time (\xC2\xB5s): " << sum[3]  << "/" << n_sample << " = " << mean[3] << ", " << std::endl;
-
-  // end line by line file read
+        // Report results
+        std::cout << "Test with parameters (k=" << k << ", n=" << n << ", esno=" << esno << ", n_block=" << n_block << "): "
+                  << "Block: " << sum[0] << "/" << n_sample << " = " << mean[0] << ", "
+                  << "Info Bit Errors: " << sum[1]  << "/" << n_sample*k << " = " << k*mean[1] << ", "
+                  << "Encoding Time (ns): " << sum[2]  << "/" << n_sample << " = " << mean[2] << ", "
+                  << "Decoding Time (\xC2\xB5s): " << sum[3]  << "/" << n_sample << " = " << mean[3] << ", " << std::endl;
+    }
+    file.close();
 }
 
 // Setup option for argmin parsing
