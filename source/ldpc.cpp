@@ -208,18 +208,46 @@ void ldpc::random(int r, int c, intvec &rd, intvec &cd) {
 
 // Generate LDPC encoder
 void ldpc::create_encoder() {
-    // First row / col edge list format to a dense binary matrix
-    //   add code here
+    // Convert sparse matrix to dense matrix
+    std::vector<std::vector<int>> dense_matrix(n_rows, std::vector<int>(n_cols, 0));
+    for (size_t i = 0; i < row.size(); ++i) {
+        dense_matrix[row[i]][col[i]] = 1;
+    }
 
-    // Then, perform row reduction with column pivoting on dense matrix in order to make the first k columns into an identity matrix
-    //   add code here
+    // Perform row reduction with column pivoting
+    int k = n_cols - n_rows;
+    for (int i = 0; i < k; ++i) {
+        if (dense_matrix[i][i] == 0) {
+            for (int j = i + 1; j < n_rows; ++j) {
+                if (dense_matrix[j][i] == 1) {
+                    std::swap(dense_matrix[i], dense_matrix[j]);
+                    break;
+                }
+            }
+        }
+        for (int j = 0; j < n_rows; ++j) {
+            if (j != i && dense_matrix[j][i] == 1) {
+                for (int l = 0; l < n_cols; ++l) {
+                    dense_matrix[j][l] ^= dense_matrix[i][l];
+                }
+            }
+        }
+    }
 
-    // Now, store the transpose of the last n-k columns as the parity generator matrix
-    //   add code here
+    // Store the transpose of the last n-k columns as the parity generator matrix
+    std::vector<std::vector<int>> parity_matrix(n_cols - k, std::vector<int>(k, 0));
+    for (int i = 0; i < n_cols - k; ++i) {
+        for (int j = 0; j < k; ++j) {
+            parity_matrix[i][j] = dense_matrix[j][k + i];
+        }
+    }
 
-    // Now, use the column pivoting permutation to relabel the bits in the row/col edge list
-    //  This keeps hte systematic generator compatible with the sparse parity-check matrix
-    //   add code here
+    // Relabel the bits in the row/col edge list
+    for (size_t i = 0; i < row.size(); ++i) {
+        if (col[i] >= k) {
+            col[i] = parity_matrix[col[i] - k][row[i]];
+        }
+    }
 }
 
 // Constants
@@ -326,16 +354,26 @@ int ldpc::decode(fltvec &llr_in, int n_iter, fltvec &llr_out, int verbose) {
 
 // Encode info bitvec into codeword bitvec
 void ldpc::encode(bitvec &info, bitvec &cw) {
-    // First, check that an encoder has been created and return with error if not
-    //    add code here
+    // Check if encoder is created
+    if (n_rows == 0 || n_cols == 0) {
+        std::cerr << "Encoder not created. Please create encoder first." << std::endl;
+        return;
+    }
 
-    // If the parity generator matrix is definfed, copy k info bits to first k codeword bits and then compute parity bits by summing rows of pairty generator associated with non-zero info bits
-    //    add code here
+    // Copy k info bits to first k codeword bits
+    int k = n_cols - n_rows;
+    for (int i = 0; i < k; ++i) {
+        cw[i] = info[i];
+    }
 
-    // For now, send 0 cw.
-    //for (size_t i = 0; i < n_cols; ++i) {
-    //    cw[i] = 0;
-    //}
+    // Compute parity bits
+    for (int i = 0; i < n_rows; ++i) {
+        int parity = 0;
+        for (int j = 0; j < k; ++j) {
+            parity ^= (info[j] & parity_matrix[i][j]);
+        }
+        cw[k + i] = parity;
+    }
 }
 
 #if 0
