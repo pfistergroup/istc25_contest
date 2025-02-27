@@ -40,7 +40,7 @@ class ldpc
     void random(int r,int c, std::vector<int> &rd, std::vector<int> &cd);
 
     // Generate encoder
-    void create_encoder();
+    void create_encoder(int verbose = 0);
 
     // Belief-propagation decoding
     int decode(fltvec &llr_in, int n_iter, fltvec &llr_out, int verbose = 0);
