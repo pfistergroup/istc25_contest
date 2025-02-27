@@ -223,7 +223,22 @@ void ldpc::create_encoder(int verbose) {
         // Search a non-zero entry in (j,perm[k]) entries of dense_matrix with j>= i and k>= i
         //   if no such element exists, declare error and return
         //   add code here
-        std::cerr << "Error: Initial square submatrix is not invertible." << std::endl;
+        bool found = false;
+        for (int j = i; j < n_rows && !found; ++j) {
+            for (int k = i; k < n_cols && !found; ++k) {
+                if (dense_matrix[j][perm[k]] == 1) {
+                    // Swap columns in permutation
+                    std::swap(perm[i], perm[k]);
+                    // Swap rows in matrix
+                    std::swap(dense_matrix[i], dense_matrix[j]);
+                    found = true;
+                }
+            }
+        }
+        if (!found) {
+            std::cerr << "Error: Initial square submatrix is not invertible." << std::endl;
+            return;
+        }
 
         //   assume dense_matrix[j][perm[k]] = 1
         //   update the perm vector to implicitly swap column perm[k] with column perm[i]
