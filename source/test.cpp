@@ -216,28 +216,18 @@ void test_ldpc_encode(ldpc &code, int verbose) {
 
     // Generate random information bit string and call ldpc::encode
     bitvec info(code.n_cols - code.n_rows);
-    std::generate(info.begin(), info.end(), []() { return rand() % 2; }); // change this line to use uniform_int_distribution
+    std::generate(info.begin(), info.end(), [&]() { return distribution(generator); });
     bitvec cw(code.n_cols);
     code.encode(info, cw);
 
-    // Change the next block of code to go through the row / col edge once and compute and xor parities into checks vector
-    int n_rows = code.n_rows; // Initialize n_rows from the ldpc code
-    std::vector<int> checks(n_rows, 0);
-    // Check that encoded codeword satisfies all the parity checks of the code
-    bool parity_check_passed = true;
-    for (int i = 0; i < code.n_rows; ++i) {
-        int parity = 0;
-        for (int j = 0; j < code.n_cols; ++j) {
-            if (std::find(code.row.begin(), code.row.end(), i) != code.row.end() &&
-                std::find(code.col.begin(), code.col.end(), j) != code.col.end()) {
-                parity ^= cw[j];
-            }
-        }
-        if (parity != 0) {
-            parity_check_passed = false;
-            break;
-        }
+    // Compute and XOR parities into checks vector
+    std::vector<int> checks(code.n_rows, 0);
+    for (size_t i = 0; i < code.row.size(); ++i) {
+        checks[code.row[i]] ^= cw[code.col[i]];
     }
+
+    // Check that encoded codeword satisfies all the parity checks of the code
+    bool parity_check_passed = std::all_of(checks.begin(), checks.end(), [](int parity) { return parity == 0; });
 
     if (parity_check_passed) {
         std::cout << "Test LDPC Encode: Passed" << std::endl;
