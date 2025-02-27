@@ -205,16 +205,38 @@ void test_alist_read_write(ldpc &code1, int verbose) {
 // Test ldpc::create_encoder and ldpc::encode
 void test_ldpc_encode(ldpc &code, int verbose) {
     // Clear the parity generator for the given code
-    //   add code here
+    code.parity_generator.clear();
 
     // Call ldpc::create_encoder to create the parity generator
-    //   add code here
+    code.create_encoder(verbose);
 
     // Generate random information bit string and call ldpc::encode
-    //   add code here
+    bitvec info(code.n_cols - code.n_rows);
+    std::generate(info.begin(), info.end(), []() { return rand() % 2; });
+    bitvec cw(code.n_cols);
+    code.encode(info, cw);
 
     // Check that encoded codeword satisfies all the parity checks of the code
-    //   add code here
+    bool parity_check_passed = true;
+    for (int i = 0; i < code.n_rows; ++i) {
+        int parity = 0;
+        for (int j = 0; j < code.n_cols; ++j) {
+            if (std::find(code.row.begin(), code.row.end(), i) != code.row.end() &&
+                std::find(code.col.begin(), code.col.end(), j) != code.col.end()) {
+                parity ^= cw[j];
+            }
+        }
+        if (parity != 0) {
+            parity_check_passed = false;
+            break;
+        }
+    }
+
+    if (parity_check_passed) {
+        std::cout << "Test LDPC Encode: Passed" << std::endl;
+    } else {
+        std::cout << "Test LDPC Encode: Failed" << std::endl;
+    }
 }
 
 
