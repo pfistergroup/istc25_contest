@@ -9,7 +9,7 @@ void test_no_error(ldpc &code, int verbose = 0);
 void test_single_error(ldpc &code, float llr_mag, int verbose = 0);
 int test_gaussian_noise(ldpc &code, float esno, int verbose = 0);
 void test_alist_read_write(ldpc &code1, int verbose = 0);
-
+void test_ldpc_encoder(ldpc &code);
 
 void test_no_error(ldpc &code, int verbose) {
     bitvec info(code.n_cols, 0); // Initialize info bits to zero
@@ -202,12 +202,28 @@ void test_alist_read_write(ldpc &code1, int verbose) {
     }
 }
 
+// Test ldpc::create_encoder and ldpc::encode
+void test_ldpc_encode(ldpc &code, int verbose) {
+    // Clear the parity generator for the given code
+    //   add code here
+
+    // Call ldpc::create_encoder to create the parity generator
+    //   add code here
+
+    // Generate random information bit string and call ldpc::encode
+    //   add code here
+
+    // Check that encoded codeword satisfies all the parity checks of the code
+    //   add code here
+}
+
+
 int main(int argc, char* argv[])
 {
     // Generate short ldpc code
     ldpc code;
-    int r = 100; // Example number of rows
-    int c = 200; // Example number of columns
+    int r = 45; // Example number of rows
+    int c = 90; // Example number of columns
 
     intvec row_degrees(r, 6); // Example row degrees
     intvec col_degrees(c, 3); // Example column degrees
@@ -215,6 +231,7 @@ int main(int argc, char* argv[])
 
     // Run test functions
     test_alist_read_write(code, 0);
+    test_ldpc_encode(code, 1)
     test_no_error(code, 0); 
     test_single_error(code, 3.0f, 0);
     test_gaussian_noise(code, 0.72, 0); // Example ESNO value
@@ -232,6 +249,9 @@ int main(int argc, char* argv[])
         //code.write_alist("long_code.txt");
     }
     //code.read_alist("CCSDS_ldpc_n256_k128.alist");
+
+    // Test encoder
+    test_ldpc_encode(code, 1)
 
     // Test single error
     test_single_error(code, 3.0f, 1);

@@ -22,7 +22,7 @@ class ldpc
     intvec row, col;
     
     // Parity generator matrix
-    std::vector<std::vector<int>> parity_matrix;
+    std::vector<std::vector<int>> parity_generator;
 
     // Constructor
     ldpc() : n_rows(0), n_cols(0), n_edges(0), rank(0) {}

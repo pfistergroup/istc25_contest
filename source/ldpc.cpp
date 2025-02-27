@@ -207,25 +207,28 @@ void ldpc::random(int r, int c, intvec &rd, intvec &cd) {
 }
 
 // Generate LDPC encoder
-void ldpc::create_encoder() {
-    // Clear existing parity matrix
-    parity_matrix.clear();
-
+void ldpc::create_encoder(int verbose) {
     // Convert sparse matrix to dense matrix
     std::vector<std::vector<int>> dense_matrix(n_rows, std::vector<int>(n_cols, 0));
     for (size_t i = 0; i < row.size(); ++i) {
         dense_matrix[row[i]][col[i]] = 1;
     }
 
+    // Define identity column permutation to track pivoting
+    //intvec perm(n_cols);
+    //for (int j = 0; j<n_cols; ++j) perm[j]=j;
+
     // Perform row reduction with column pivoting
-    int k = n_cols - n_rows;
-    for (int i = 0; i < k; ++i) {
+    for (int i = 0; i < n_rows; ++i) {
         if (dense_matrix[i][i] == 0) {
             for (int j = i + 1; j < n_rows; ++j) {
                 if (dense_matrix[j][i] == 1) {
                     std::swap(dense_matrix[i], dense_matrix[j]);
+                    //std::swap(perm[i],perm[j]);
                     break;
                 }
+                // If no non-zero element found below diagonal, then the initial square submatrix not invertible
+                //   add code here to test and return with error
             }
         }
         for (int j = 0; j < n_rows; ++j) {
@@ -237,20 +240,24 @@ void ldpc::create_encoder() {
         }
     }
 
-    // Store the transpose of the last n-k columns as the parity generator matrix
-    parity_matrix.resize(n_cols - k, std::vector<int>(k, 0));
-    for (int i = 0; i < n_cols - k; ++i) {
-        for (int j = 0; j < k; ++j) {
-            parity_matrix[i][j] = dense_matrix[j][k + i];
+    // Print dense matrix if verbose
+    //   add code here
+
+    // Clear existing parity generator matrix and copy transpose of the last k columns of dense matrix
+    parity_generator.clear();
+    parity_generator.resize(n_cols - n_rows, std::vector<int>(n_rows, 0));
+    for (int i = 0; i < n_cols - n_rows; ++i) {
+        for (int j = 0; j < n_rows; ++j) {
+            parity_generator[i][j] = dense_matrix[j][n_rows + i];
         }
     }
 
     // Relabel the bits in the row/col edge list
-    for (size_t i = 0; i < row.size(); ++i) {
-        if (col[i] >= k) {
-            col[i] = parity_matrix[col[i] - k][row[i]];
-        }
-    }
+    //for (size_t i = 0; i < row.size(); ++i) {
+    //    if (col[i] >= k) {
+    //        col[i] = parity_generator[col[i] - k][row[i]];
+    //    }
+    //}
 }
 
 // Constants
@@ -358,7 +365,7 @@ int ldpc::decode(fltvec &llr_in, int n_iter, fltvec &llr_out, int verbose) {
 // Encode info bitvec into codeword bitvec
 void ldpc::encode(bitvec &info, bitvec &cw) {
     // Check if encoder is created
-    if (n_rows == 0 || n_cols == 0) {
+    if (parity_generator.empty()) {
         std::cerr << "Encoder not created. Please create encoder first." << std::endl;
         return;
     }
@@ -373,7 +380,7 @@ void ldpc::encode(bitvec &info, bitvec &cw) {
     for (int i = 0; i < n_rows; ++i) {
         int parity = 0;
         for (int j = 0; j < k; ++j) {
-            parity ^= (info[j] & parity_matrix[i][j]);
+            parity ^= (info[j] & parity_generator[i][j]);
         }
         cw[k + i] = parity;
     }
