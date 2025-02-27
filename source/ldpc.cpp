@@ -220,9 +220,7 @@ void ldpc::create_encoder(int verbose) {
 
     // Perform row reduction with column pivoting
     for (int i = 0; i < n_rows; ++i) {
-        // Search a non-zero entry in (j,perm[k]) entries of dense_matrix with j>= i and k>= i
-        //   if no such element exists, declare error and return
-        //   add code here
+        // Search for a non-zero entry in the submatrix
         bool found = false;
         for (int j = i; j < n_rows && !found; ++j) {
             for (int k = i; k < n_cols && !found; ++k) {
@@ -239,11 +237,6 @@ void ldpc::create_encoder(int verbose) {
             std::cerr << "Error: Initial square submatrix is not invertible." << std::endl;
             return;
         }
-
-        //   assume dense_matrix[j][perm[k]] = 1
-        //   update the perm vector to implicitly swap column perm[k] with column perm[i]
-        //   then swap row i with row j so that dense_matrix[i][perm[i]] = 1
-        //   add code here
 
         // Use row i to cancel all ones in column perm[i] except row i
         for (int j = 0; j < n_rows; ++j) {
