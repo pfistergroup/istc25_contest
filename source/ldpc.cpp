@@ -276,10 +276,10 @@ void ldpc::create_encoder(int verbose) {
 
     // Clear existing parity generator matrix and copy transpose of the last k columns of dense matrix
     parity_generator.clear();
-    parity_generator.resize(n_cols - n_rows, std::vector<int>(n_rows, 0));
-    for (int i = 0; i < n_cols - n_rows; ++i) {
-        for (int j = 0; j < n_rows; ++j) {
-            parity_generator[i][j] = dense_matrix[j][perm[n_rows + i]];
+    parity_generator.resize(n_rows, std::vector<int>(n_cols - n_rows, 0));
+    for (int i = 0; i < n_rows; ++i) {
+        for (int j = 0; j < n_cols - n_rows; ++j) {
+            parity_generator[i][j] = dense_matrix[i][perm[n_rows + j]];
         }
     }
 
