@@ -21,6 +21,9 @@ class ldpc
     // Sparse binary matrix given by list row nad col positions of non-zero elements
     intvec row, col;
     
+    // Parity generator matrix
+    std::vector<std::vector<int>> parity_matrix;
+
     // Constructor
     ldpc() : n_rows(0), n_cols(0), n_edges(0), rank(0) {}
 

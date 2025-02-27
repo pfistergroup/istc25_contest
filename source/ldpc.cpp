@@ -208,6 +208,9 @@ void ldpc::random(int r, int c, intvec &rd, intvec &cd) {
 
 // Generate LDPC encoder
 void ldpc::create_encoder() {
+    // Clear existing parity matrix
+    parity_matrix.clear();
+
     // Convert sparse matrix to dense matrix
     std::vector<std::vector<int>> dense_matrix(n_rows, std::vector<int>(n_cols, 0));
     for (size_t i = 0; i < row.size(); ++i) {
@@ -235,7 +238,7 @@ void ldpc::create_encoder() {
     }
 
     // Store the transpose of the last n-k columns as the parity generator matrix
-    std::vector<std::vector<int>> parity_matrix(n_cols - k, std::vector<int>(k, 0));
+    parity_matrix.resize(n_cols - k, std::vector<int>(k, 0));
     for (int i = 0; i < n_cols - k; ++i) {
         for (int j = 0; j < k; ++j) {
             parity_matrix[i][j] = dense_matrix[j][k + i];
