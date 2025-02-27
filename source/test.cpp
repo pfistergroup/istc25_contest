@@ -9,14 +9,14 @@ void test_no_error(ldpc &code, int verbose = 0);
 void test_single_error(ldpc &code, float llr_mag, int verbose = 0);
 int test_gaussian_noise(ldpc &code, float esno, int verbose = 0);
 void test_alist_read_write(ldpc &code1, int verbose = 0);
-void test_ldpc_encoder(ldpc &code);
+void test_ldpc_encoder(ldpc &code, int verbose = 0);
 
 void test_no_error(ldpc &code, int verbose) {
     bitvec info(code.n_cols, 0); // Initialize info bits to zero
     bitvec cw(code.n_cols);
-    llrvec llr(code.n_cols);
+    fltvec llr(code.n_cols);
     bitvec cw_est(code.n_cols, 0);
-    llrvec llr_est(code.n_cols);
+    fltvec llr_est(code.n_cols);
 
     if (verbose) {
         std::cout << "Running Test No Error..." << std::endl;
@@ -62,8 +62,8 @@ void test_no_error(ldpc &code, int verbose) {
 void test_single_error(ldpc &code, float llr_mag, int verbose) {
     bitvec info(code.n_cols, 0); // Initialize info bits to zero
     bitvec cw(code.n_cols);
-    llrvec llr(code.n_cols);
-    llrvec llr_out(code.n_cols);
+    fltvec llr(code.n_cols);
+    fltvec llr_out(code.n_cols);
     bitvec cw_est(code.n_cols);
 
     code.encode(info, cw);
@@ -102,8 +102,8 @@ int test_gaussian_noise(ldpc &code, float esno, int verbose) {
     // Setup
     bitvec info(code.n_cols, 0); // Initialize info bits to zero
     bitvec cw(code.n_cols);
-    llrvec llr(code.n_cols);
-    llrvec llr_out(code.n_cols, 0.0f);
+    fltvec llr(code.n_cols);
+    fltvec llr_out(code.n_cols, 0.0f);
     bitvec cw_est(code.n_cols);
 
     // Encode and generate LLRs
@@ -210,12 +210,18 @@ void test_ldpc_encode(ldpc &code, int verbose) {
     // Call ldpc::create_encoder to create the parity generator
     code.create_encoder(verbose);
 
+    // Setup binary RNG
+    std::default_random_engine generator(std::chrono::system_clock::now().time_since_epoch().count());
+    std::uniform_int_distribution<int> distribution(0, 1);
+
     // Generate random information bit string and call ldpc::encode
     bitvec info(code.n_cols - code.n_rows);
-    std::generate(info.begin(), info.end(), []() { return rand() % 2; });
+    std::generate(info.begin(), info.end(), []() { return rand() % 2; }); // change this line to use uniform_int_distribution
     bitvec cw(code.n_cols);
     code.encode(info, cw);
 
+    // Change the next block of code to go through the row / col edge once and compute and xor parities into checks vector
+    std::vector<int> checks(n_rows, 0);
     // Check that encoded codeword satisfies all the parity checks of the code
     bool parity_check_passed = true;
     for (int i = 0; i < code.n_rows; ++i) {
@@ -253,7 +259,7 @@ int main(int argc, char* argv[])
 
     // Run test functions
     test_alist_read_write(code, 0);
-    test_ldpc_encode(code, 1)
+    test_ldpc_encode(code, 1);
     test_no_error(code, 0); 
     test_single_error(code, 3.0f, 0);
     test_gaussian_noise(code, 0.72, 0); // Example ESNO value
@@ -273,7 +279,7 @@ int main(int argc, char* argv[])
     //code.read_alist("CCSDS_ldpc_n256_k128.alist");
 
     // Test encoder
-    test_ldpc_encode(code, 1)
+    test_ldpc_encode(code, 1);
 
     // Test single error
     test_single_error(code, 3.0f, 1);
