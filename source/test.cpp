@@ -221,6 +221,7 @@ void test_ldpc_encode(ldpc &code, int verbose) {
     code.encode(info, cw);
 
     // Change the next block of code to go through the row / col edge once and compute and xor parities into checks vector
+    int n_rows = code.n_rows; // Initialize n_rows from the ldpc code
     std::vector<int> checks(n_rows, 0);
     // Check that encoded codeword satisfies all the parity checks of the code
     bool parity_check_passed = true;
