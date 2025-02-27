@@ -220,44 +220,21 @@ void ldpc::create_encoder(int verbose) {
 
     // Perform row reduction with column pivoting
     for (int i = 0; i < n_rows; ++i) {
-        if (dense_matrix[i][i] == 0) {
-            for (int j = i + 1; j < n_rows; ++j) {
-                if (dense_matrix[j][i] == 1) {
-                    std::swap(dense_matrix[i], dense_matrix[j]);
-                    break;
-                }
-            }
-            if (dense_matrix[i][i] == 0) {
-                for (int j = i + 1; j < n_cols; ++j) {
-                    if (dense_matrix[i][j] == 1) {
-                        for (int k = 0; k < n_rows; ++k) {
-                            std::swap(dense_matrix[k][i], dense_matrix[k][j]);
-                        }
-                        std::swap(perm[i], perm[j]);
-                        break;
-                    }
-                }
-                if (dense_matrix[i][i] == 0) {
-                    for (int j = i + 1; j < n_cols; ++j) {
-                        if (dense_matrix[i][j] == 1) {
-                            for (int k = 0; k < n_rows; ++k) {
-                                std::swap(dense_matrix[k][i], dense_matrix[k][j]);
-                            }
-                            std::swap(perm[i], perm[j]);
-                            break;
-                        }
-                    }
-                    if (dense_matrix[i][i] == 0) {
-                        std::cerr << "Error: Initial square submatrix is not invertible." << std::endl;
-                        return;
-                    }
-                }
-            }
-        }
+        // Search a non-zero entry in (j,perm[k]) entries of dense_matrix with j>= i and k>= i
+        //   if no such element exists, declare error and return
+        //   add code here
+        std::cerr << "Error: Initial square submatrix is not invertible." << std::endl;
+
+        //   assume dense_matrix[j][perm[k]] = 1
+        //   update the perm vector to implicitly swap column perm[k] with column perm[i]
+        //   then swap row i with row j so that dense_matrix[i][perm[i]] = 1
+        //   add code here
+
+        // Use row i to cancel all ones in column perm[i] except row i
         for (int j = 0; j < n_rows; ++j) {
-            if (j != i && dense_matrix[j][i] == 1) {
+            if (j != i && dense_matrix[j][perm[i]] == 1) {
                 for (int l = 0; l < n_cols; ++l) {
-                    dense_matrix[j][perm[l]] ^= dense_matrix[i][perm[l]];
+                    dense_matrix[j][l] ^= dense_matrix[i][l];
                 }
             }
         }
@@ -284,9 +261,6 @@ void ldpc::create_encoder(int verbose) {
     }
 
     // Relabel the bits in the row/col edge list to account for the column pivoting permutation perm
-    for (size_t i = 0; i < col.size(); ++i) {
-        col[i] = perm[col[i]];
-    }
     for (size_t i = 0; i < col.size(); ++i) {
         col[i] = perm[col[i]];
     }
