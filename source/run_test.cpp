@@ -151,7 +151,7 @@ void run_test(int k, int n, float esno, int n_block, decoder_stats &stats)
   {
     // Generate random binary message of length test.k
     for (int j = 0; j < k; ++j) {
-        info[j] = 0; // distribution(generator); // Random binary message
+        info[j] = distribution(generator); // Random binary message
     }
 
     // Encode message

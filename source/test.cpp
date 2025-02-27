@@ -106,9 +106,15 @@ int test_gaussian_noise(ldpc &code, float esno, int verbose) {
     fltvec llr_out(code.n_cols, 0.0f);
     bitvec cw_est(code.n_cols);
 
-    // Encode and generate LLRs
-    code.encode(info, cw);
+    // Setup binary RNG and encoding
     std::default_random_engine generator(std::chrono::system_clock::now().time_since_epoch().count());
+    std::uniform_int_distribution<int> rand_bit(0, 1);
+    if (!code.parity_generator.empty()) {
+        for (int i=0; i<code.n_cols - code.n_rows; ++i) info[i] = rand_bit(generator);
+    }
+    code.encode(info, cw);
+ 
+    // Generate LLRs
     std::normal_distribution<float> distribution(4*esno, std::sqrt(8*esno));
     for (size_t i = 0; i < cw.size(); ++i) {
         llr[i] = (cw[i] == 0 ? 1.0f : -1.0f) * distribution(generator);
@@ -239,21 +245,25 @@ void test_ldpc_encode(ldpc &code, int verbose) {
 
 int main(int argc, char* argv[])
 {
-    // Generate short ldpc code
     ldpc code;
+
+    // Test encoder
+    code.read_alist("hamm74.alist",1);
+    test_ldpc_encode(code, 1);
+
+    // Generate short ldpc code
     int r = 45; // Example number of rows
     int c = 90; // Example number of columns
-
     intvec row_degrees(r, 6); // Example row degrees
     intvec col_degrees(c, 3); // Example column degrees
     code.random(r, c, row_degrees, col_degrees);
 
     // Run test functions
     test_alist_read_write(code, 0);
-    test_ldpc_encode(code, 1);
+    test_ldpc_encode(code, 0);
     test_no_error(code, 0); 
     test_single_error(code, 3.0f, 0);
-    test_gaussian_noise(code, 0.72, 0); // Example ESNO value
+    test_gaussian_noise(code, 0.8, 1); // Example ESNO value
 
     // Generate long ldpc code
     if (false) {
@@ -270,7 +280,7 @@ int main(int argc, char* argv[])
     //code.read_alist("CCSDS_ldpc_n256_k128.alist");
 
     // Test encoder
-    test_ldpc_encode(code, 1);
+    test_ldpc_encode(code, 0);
 
     // Test single error
     test_single_error(code, 3.0f, 1);

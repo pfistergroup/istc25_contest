@@ -222,8 +222,8 @@ void ldpc::create_encoder(int verbose) {
     for (int i = 0; i < n_rows; ++i) {
         // Search for a non-zero entry in the submatrix
         bool found = false;
-        for (int j = i; j < n_rows && !found; ++j) {
-            for (int k = i; k < n_cols && !found; ++k) {
+        for (int k = i; k < n_cols && !found; ++k) {
+            for (int j = i; j < n_rows && !found; ++j) {
                 if (dense_matrix[j][perm[k]] == 1) {
                     // Swap columns in permutation
                     std::swap(perm[i], perm[k]);
@@ -248,29 +248,62 @@ void ldpc::create_encoder(int verbose) {
         }
     }
 
-    // Print dense matrix if verbose
-    if (verbose) {
-        std::cout << "Dense matrix:" << std::endl;
-        for (const auto& row : dense_matrix) {
-            for (int val : row) {
-                std::cout << val << " ";
-            }
-            std::cout << std::endl;
+    // Clear existing parity generator matrix and copy transpose of the last k columns of dense matrix
+    parity_generator.clear();
+    parity_generator.resize(n_cols - n_rows, std::vector<int>(n_rows, 0));
+    for (int i = 0; i < n_rows; ++i) {
+        for (int j = 0; j < n_cols - n_rows; ++j) {
+            parity_generator[j][i] = dense_matrix[i][perm[n_rows + j]];
         }
     }
 
-    // Clear existing parity generator matrix and copy transpose of the last k columns of dense matrix
-    parity_generator.clear();
-    parity_generator.resize(n_rows, std::vector<int>(n_cols - n_rows, 0));
-    for (int i = 0; i < n_rows; ++i) {
-        for (int j = 0; j < n_cols - n_rows; ++j) {
-            parity_generator[i][j] = dense_matrix[i][perm[n_rows + j]];
+    // Rearrange to put info block first and parity last
+    intvec tmp_perm;
+    tmp_perm = perm;
+    for (int j = 0; j<n_cols-n_rows; ++j) perm[j]=tmp_perm[n_rows+j];
+    for (int j = 0; j<n_rows; ++j) perm[j+n_cols-n_rows]=tmp_perm[j];
+
+    // Print dense_matrix if verbose
+    if (verbose) {
+        std::cout << "After row reduction with permutation:" << std::endl;
+        for (int i = 0; i < n_rows; ++i) {
+          for (int j = 0; j < n_cols; ++j) {
+            std::cout << dense_matrix[i][perm[j]] << " ";
+          }
+          std::cout << std::endl;
         }
     }
+
+    // Print dense_matrix if verbose
+    //if (verbose) {
+    //    std::cout << "After row reduction without permutation:" << std::endl;
+    //    for (int i = 0; i < n_rows; ++i) {
+    //      for (int j = 0; j < n_cols; ++j) {
+    //        std::cout << dense_matrix[i][j] << " ";
+    //      }
+    //      std::cout << std::endl;
+    //    }
+    //}
+
+    // Print parity_generator if verbose
+    if (verbose) {
+        std::cout << "Parity generator:" << std::endl;
+        for (int i = 0; i < n_cols - n_rows; ++i) {
+          for (int j = 0; j < n_rows; ++j) {
+            std::cout << parity_generator[i][j] << " ";
+          }
+          std::cout << std::endl;
+        }
+    }
+
+    // Invert permutation so that we can paply to edge list
+    intvec invperm(n_cols);
+    for (int j = 0; j<n_cols; ++j) invperm[perm[j]] = j;
 
     // Relabel the bits in the row/col edge list to account for the column pivoting permutation perm
     for (size_t i = 0; i < col.size(); ++i) {
-        col[i] = perm[col[i]];
+        col[i] = invperm[col[i]];
+        if (verbose) std::cout << row[i] << " " << col[i] << std::endl;
     }
 }
 
@@ -394,7 +427,7 @@ void ldpc::encode(bitvec &info, bitvec &cw) {
     for (int i = 0; i < n_rows; ++i) {
         int parity = 0;
         for (int j = 0; j < k; ++j) {
-            parity ^= (info[j] & parity_generator[i][j]);
+            parity ^= (info[j] & parity_generator[j][i]);
         }
         cw[k + i] = parity;
     }
