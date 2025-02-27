@@ -238,8 +238,19 @@ void ldpc::create_encoder(int verbose) {
                     }
                 }
                 if (dense_matrix[i][i] == 0) {
-                    std::cerr << "Error: Initial square submatrix is not invertible." << std::endl;
-                    return;
+                    for (int j = i + 1; j < n_cols; ++j) {
+                        if (dense_matrix[i][j] == 1) {
+                            for (int k = 0; k < n_rows; ++k) {
+                                std::swap(dense_matrix[k][i], dense_matrix[k][j]);
+                            }
+                            std::swap(perm[i], perm[j]);
+                            break;
+                        }
+                    }
+                    if (dense_matrix[i][i] == 0) {
+                        std::cerr << "Error: Initial square submatrix is not invertible." << std::endl;
+                        return;
+                    }
                 }
             }
         }
@@ -273,6 +284,9 @@ void ldpc::create_encoder(int verbose) {
     }
 
     // Relabel the bits in the row/col edge list to account for the column pivoting permutation perm
+    for (size_t i = 0; i < col.size(); ++i) {
+        col[i] = perm[col[i]];
+    }
     for (size_t i = 0; i < col.size(); ++i) {
         col[i] = perm[col[i]];
     }
