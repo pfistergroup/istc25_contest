@@ -56,6 +56,7 @@ void ldpc::read_alist(const std::string &filename, bool zero_pad) {
             }
         }
     }
+    // Read in variable length format
     else {
         for (int j = 0; j < n_cols; ++j) {
             for (int i = 0; i < max_col_weight; ++i) {
@@ -74,6 +75,7 @@ void ldpc::read_alist(const std::string &filename, bool zero_pad) {
     }
 }
 
+// Sort edges to allow comparison between two codes
 void ldpc::sort_edges() {
     std::vector<std::pair<int, int>> edges;
     for (size_t i = 0; i < row.size(); ++i) {
@@ -92,6 +94,7 @@ void ldpc::sort_edges() {
     }
 }
 
+// Write current code to alist
 void ldpc::write_alist(const std::string &filename, bool zero_pad) {
     // Open file
     std::ofstream file(filename);
@@ -203,10 +206,20 @@ void ldpc::random(int r, int c, intvec &rd, intvec &cd) {
     }
 }
 
-// Generate encoder
+// Generate LDPC encoder
 void ldpc::create_encoder() {
-    // This is a stub implementation
-    // Actual implementation would create an encoder for the LDPC code
+    // First row / col edge list format to a dense binary matrix
+    //   add code here
+
+    // Then, perform row reduction with column pivoting on dense matrix in order to make the first k columns into an identity matrix
+    //   add code here
+
+    // Now, store the transpose of the last n-k columns as the parity generator matrix
+    //   add code here
+
+    // Now, use the column pivoting permutation to relabel the bits in the row/col edge list
+    //  This keeps hte systematic generator compatible with the sparse parity-check matrix
+    //   add code here
 }
 
 // Constants
@@ -311,13 +324,18 @@ int ldpc::decode(fltvec &llr_in, int n_iter, fltvec &llr_out, int verbose) {
     return is_codeword;
 }
 
+// Encode info bitvec into codeword bitvec
 void ldpc::encode(bitvec &info, bitvec &cw) {
-    // This is a stub implementation
-    // Actual implementation would encode the information bits into codeword bits
+    // First, check that an encoder has been created and return with error if not
+    //    add code here
+
+    // If the parity generator matrix is definfed, copy k info bits to first k codeword bits and then compute parity bits by summing rows of pairty generator associated with non-zero info bits
+    //    add code here
+
     // For now, send 0 cw.
-    for (size_t i = 0; i < n_cols; ++i) {
-        cw[i] = 0;
-    }
+    //for (size_t i = 0; i < n_cols; ++i) {
+    //    cw[i] = 0;
+    //}
 }
 
 #if 0

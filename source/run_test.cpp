@@ -151,7 +151,7 @@ void run_test(int k, int n, float esno, int n_block, decoder_stats &stats)
   {
     // Generate random binary message of length test.k
     for (int j = 0; j < k; ++j) {
-        info[j] = distribution(generator); // Random binary message
+        info[j] = 0; // distribution(generator); // Random binary message
     }
 
     // Encode message
@@ -176,6 +176,9 @@ void run_test(int k, int n, float esno, int n_block, decoder_stats &stats)
         if (info[j] != info_est[j]) {
             ++bit_err;
         }
+    }
+    if (bit_err > 0 && detect==1) {
+      std::cout << "wrong codeword?" << std::endl;
     }
 
     // Update statistics
@@ -294,9 +297,11 @@ void run_test_file(std::string filename, std::string output_filename) {
                   << "Decoding Time (\xC2\xB5s): " << sum[3]  << "/" << n_sample << " = " << mean[3] << ", " << std::endl;
 
         // Write stats
-        std::string suffix = std::to_string(k) + "_" + std::to_string(n) + "_" + std::to_string(n_block);
-        std::ofstream statStream(output_filename + suffix);
-        run_stats.print(&statStream);
+        if (!output_filename.empty()) {
+          std::string suffix = std::to_string(k) + "_" + std::to_string(n) + "_" + std::to_string(n_block);
+          std::ofstream statStream(output_filename + suffix);
+          run_stats.print(&statStream);
+        }
     }
     file.close();
 }
@@ -334,7 +339,6 @@ int main(int argc, char* argv[])
     if (iter != parsedOptions.end()) {
         output_file = iter->second;
         std::cout << "Output file = " << output_file << std::endl;
-        run_test_file(test_file,output_file);
     }
     // Handle input file argument
     iter = parsedOptions.find("file");
