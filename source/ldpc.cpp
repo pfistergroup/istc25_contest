@@ -215,8 +215,8 @@ void ldpc::create_encoder(int verbose) {
     }
 
     // Define identity column permutation to track pivoting
-    //intvec perm(n_cols);
-    //for (int j = 0; j<n_cols; ++j) perm[j]=j;
+    intvec perm(n_cols);
+    for (int j = 0; j<n_cols; ++j) perm[j]=j;
 
     // Perform row reduction with column pivoting
     for (int i = 0; i < n_rows; ++i) {
@@ -227,6 +227,8 @@ void ldpc::create_encoder(int verbose) {
                     //std::swap(perm[i],perm[j]);
                     break;
                 }
+                // In the code below, instead of giving up, please change code below to implement column pivoting to make initial square submatrix invertible
+                //   add code here
                 // If no non-zero element found below diagonal, then the initial square submatrix not invertible
                 std::cerr << "Error: Initial square submatrix is not invertible." << std::endl;
                 return;
@@ -261,12 +263,8 @@ void ldpc::create_encoder(int verbose) {
         }
     }
 
-    // Relabel the bits in the row/col edge list
-    //for (size_t i = 0; i < row.size(); ++i) {
-    //    if (col[i] >= k) {
-    //        col[i] = parity_generator[col[i] - k][row[i]];
-    //    }
-    //}
+    // Relabel the bits in the row/col edge list to account for the column pivoting permutation perm
+    //   add code here
 }
 
 // Constants
