@@ -224,7 +224,6 @@ void ldpc::create_encoder(int verbose) {
             for (int j = i + 1; j < n_rows; ++j) {
                 if (dense_matrix[j][i] == 1) {
                     std::swap(dense_matrix[i], dense_matrix[j]);
-                    //std::swap(perm[i],perm[j]);
                     break;
                 }
             }
@@ -247,7 +246,7 @@ void ldpc::create_encoder(int verbose) {
         for (int j = 0; j < n_rows; ++j) {
             if (j != i && dense_matrix[j][i] == 1) {
                 for (int l = 0; l < n_cols; ++l) {
-                    dense_matrix[j][l] ^= dense_matrix[i][l];
+                    dense_matrix[j][perm[l]] ^= dense_matrix[i][perm[l]];
                 }
             }
         }
@@ -269,7 +268,7 @@ void ldpc::create_encoder(int verbose) {
     parity_generator.resize(n_cols - n_rows, std::vector<int>(n_rows, 0));
     for (int i = 0; i < n_cols - n_rows; ++i) {
         for (int j = 0; j < n_rows; ++j) {
-            parity_generator[i][j] = dense_matrix[j][n_rows + i];
+            parity_generator[i][j] = dense_matrix[j][perm[n_rows + i]];
         }
     }
 
