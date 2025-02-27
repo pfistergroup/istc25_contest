@@ -228,7 +228,8 @@ void ldpc::create_encoder(int verbose) {
                     break;
                 }
                 // If no non-zero element found below diagonal, then the initial square submatrix not invertible
-                //   add code here to test and return with error
+                std::cerr << "Error: Initial square submatrix is not invertible." << std::endl;
+                return;
             }
         }
         for (int j = 0; j < n_rows; ++j) {
@@ -241,7 +242,15 @@ void ldpc::create_encoder(int verbose) {
     }
 
     // Print dense matrix if verbose
-    //   add code here
+    if (verbose) {
+        std::cout << "Dense matrix:" << std::endl;
+        for (const auto& row : dense_matrix) {
+            for (int val : row) {
+                std::cout << val << " ";
+            }
+            std::cout << std::endl;
+        }
+    }
 
     // Clear existing parity generator matrix and copy transpose of the last k columns of dense matrix
     parity_generator.clear();
