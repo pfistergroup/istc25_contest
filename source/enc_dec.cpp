@@ -1,3 +1,4 @@
+#include <iostream>
 #include <cmath>
 #include "enc_dec.h"
 #include "ldpc.h"
@@ -32,6 +33,7 @@ int enc_dec::init(int k, int n) {
     code.random(r, c, row_degrees, col_degrees);
 
     // Setup encoder
+    code.create_encoder();
 
     return 0;
 }
@@ -46,6 +48,9 @@ llr_type enc_dec::llr2int(float float_llr) {
 void enc_dec::encode(bitvec &info, bitvec &cw) {
     // Contestants should replace this code
     //   Actual implementation would encode the information bits into codeword bits
+
+    // Encode block
+    code.encode(info, cw);
 }
 
 // Decode n llrs into n codeword bits and k info bits, return -1 if detected error
@@ -55,9 +60,14 @@ int enc_dec::decode(llrvec &llr, bitvec &cw_est, bitvec &info_est) {
 
     // Decode using ldpc
     fltvec float_llr(code.n_cols);
+    fltvec llrout(code.n_cols);
     for (int j=0; j<code.n_cols; ++j) float_llr[j] = (25.0/32768)*llr[j];
-    auto result =  code.decode(float_llr, 20, float_llr, 0);
-    for (int j=0; j<code.n_cols; ++j) cw_est[j] = (float_llr[j] <= 0 ? 1 : 0);
+    //for (int j=0; j<code.n_cols; ++j) std::cout << float_llr[j];
+    //std::cout << std::endl;
+    auto result =  code.decode(float_llr, 20, llrout, 0);
+    //for (int j=0; j<code.n_cols; ++j) std::cout << llrout[j];
+    //std::cout << std::endl;
+    for (int j=0; j<code.n_cols; ++j) cw_est[j] = (llrout[j] <= 0 ? 1 : 0);
     for (int j=0; j<code.n_cols-code.n_rows; ++j) info_est[j] = cw_est[j];
     return result;
 }

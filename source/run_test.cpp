@@ -152,7 +152,9 @@ void run_test(int k, int n, float esno, int n_block, decoder_stats &stats)
     // Generate random binary message of length test.k
     for (int j = 0; j < k; ++j) {
         info[j] = distribution(generator); // Random binary message
+        //std::cout << info[j] << " ";
     }
+    //std::cout << std::endl;
 
     // Encode message
     auto enc_start = std::chrono::high_resolution_clock::now();
@@ -173,10 +175,12 @@ void run_test(int k, int n, float esno, int n_block, decoder_stats &stats)
     // Count number of bit errors
     int bit_err = 0;
     for (int j = 0; j < k; ++j) {
+        //std::cout << info_est[j] << " ";
         if (info[j] != info_est[j]) {
             ++bit_err;
         }
     }
+    //std::cout << std::endl;
     if (bit_err > 0 && detect==1) {
       std::cout << "wrong codeword?" << std::endl;
     }
