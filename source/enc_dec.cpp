@@ -7,7 +7,7 @@ ldpc code;
 int c, r;
 
 // Setup for [n,k] code
-int enc_dec::init(int k, int n) {
+int enc_dec::init(int k, int n, bool opt_avg_latency) {
     // Contestants should replace this code
     //   This code should initialize the encoder-decoder
 

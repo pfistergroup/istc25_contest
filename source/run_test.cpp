@@ -1,4 +1,5 @@
 #include <iostream>
+#include <sys/resource.h>
 #include <chrono>
 #include <string>
 #include <ctime>
@@ -138,7 +139,7 @@ void run_test(int k, int n, float esno, int n_block, decoder_stats &stats)
   enc_dec entry;
 
   // Init encoder and decoder for entry
-  if (entry.init(k,n) != 0) {
+  if (entry.init(k,n,0) != 0) {
     // This submission does not handle this code
     std::cout << "Handle exception" << std::endl;
   }
@@ -210,7 +211,7 @@ void run_test_number(int t, decoder_stats &stats)
   enc_dec entry;
 
   // Init encoder and decoder for entry
-  if (entry.init(test.k,test.n) != 0) {
+  if (entry.init(test.k,test.n,0) != 0) {
     // This submission does not handle this code
     std::cout << "Handle exception" << std::endl;
   }
@@ -323,6 +324,44 @@ OptionSpec options[] = {
 
 int main(int argc, char* argv[])
 {
+#if 0
+    // Set some limits ;-)
+    struct rlimit limit;
+    if (getrlimit(RLIMIT_DATA, &limit) == 0) {
+        // Set new soft limit to 1MB (example)
+        limit.rlim_cur = 1024 * 1024; 
+
+        // Set new hard limit to 2MB (example)
+        limit.rlim_max = 2 * 1024 * 1024;
+
+        // Apply the new limits
+        if (setrlimit(RLIMIT_DATA, &limit) != 0) {
+            perror("setrlimit data");
+            return 1;
+        }
+    } else {
+        perror("getrlimit data");
+        return 1;
+    }
+
+    if (getrlimit(RLIMIT_CPU, &limit) == 0) {
+        // Set new soft limit to 10s (example)
+        limit.rlim_cur = 10;
+
+        // Set new hard limit to 10s (example)
+        limit.rlim_max = 10;
+
+        // Apply the new limits
+        if (setrlimit(RLIMIT_CPU, &limit) != 0) {
+            perror("setrlimit cpu");
+            return 1;
+        }
+    } else {
+        perror("getrlimit cpu");
+        return 1;
+    }
+#endif
+
     // Parse options
     int argmin_result;
     std::map<std::string,std::string> parsedOptions;
