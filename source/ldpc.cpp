@@ -181,7 +181,8 @@ void ldpc::random(int r, int c, intvec &rd, intvec &cd) {
     std::random_device rd_device;
     std::mt19937 generator(rd_device());
 
-    while (!is_simple) {
+    int fail = 0;
+    while (!is_simple && fail<10000) {
         // Shuffle the stubs to create random pairings
         std::shuffle(row_stubs.begin(), row_stubs.end(), generator);
         std::shuffle(col_stubs.begin(), col_stubs.end(), generator);
@@ -198,12 +199,14 @@ void ldpc::random(int r, int c, intvec &rd, intvec &cd) {
         is_simple = true;
         std::set<std::pair<int, int>> edge_set;
         for (size_t i = 0; i < row.size(); ++i) {
-            if (row[i] == col[i] || !edge_set.insert({row[i], col[i]}).second) {
+            if (is_simple==true && (row[i] == col[i] || !edge_set.insert({row[i], col[i]}).second)) {
                 is_simple = false;
+                fail++;
                 break;
             }
         }
     }
+    if (fail==10000) std::cout << "Codegen fail " << fail << std::endl;
 }
 
 // Generate LDPC encoder
@@ -433,29 +436,3 @@ void ldpc::encode(bitvec &info, bitvec &cw) {
     }
 }
 
-#if 0
-int ldpc_enc_dec::init(int k, int n) {
-    // Initialize the LDPC code randomly
-    intvec col_degrees(n, 3); // Example column degrees
-    intvec row_degrees(k, 3*n/k); // Example row degrees
-   
-    ldpc_code.random(k, n, row_degrees, col_degrees);
-    //ldpc_code.create_encoder();
-    return 0;
-}
-
-void ldpc_enc_dec::encode(bitvec &info, bitvec &cw) {
-    // Use the LDPC encoder
-    ldpc_code.encode(info, cw);
-}
-
-int ldpc_enc_dec::decode(fltvec &llr, bitvec &cw_est, bitvec &info_est) {
-    // Use the LDPC decoder
-    std::vector<float> llr_vec(llr.begin(), llr.end());
-    std::vector<float> cw_est_vec(cw_est.begin(), cw_est.end());
-    fltvec llr_float_vec(llr_vec.begin(), llr_vec.end());
-    auto result = ldpc_code.decode(llr_float_vec, 50, cw_est_vec); // Assuming 50 iterations for decoding
-    std::copy(cw_est_vec.begin(), cw_est_vec.end(), cw_est.begin());
-    return result;
-}
-#endif

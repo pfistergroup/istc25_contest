@@ -1,5 +1,5 @@
 CXX = g++
-CXXFLAGS = -Wall -O3 -std=c++17 -Wl,-stack,1m
+CXXFLAGS = -Wall -O3 -std=c++17
 LDFLAGS = 
 SOURCES = enc_dec.cpp run_test.cpp ldpc.cpp test.cpp argmin.cpp
 OBJECTS = $(SOURCES:.cpp=.o)

@@ -4,7 +4,7 @@
 #include "ldpc.h"
 
 ldpc code;
-int c, r;
+int max_iter;
 
 // Setup for [n,k] code
 int enc_dec::init(int k, int n, bool opt_avg_latency) {
@@ -22,10 +22,17 @@ int enc_dec::init(int k, int n, bool opt_avg_latency) {
       dv = 3;
       dc = 6;
     }
+    // 20*(n-k) = 5*4*(n-k) = 5*k = 4*n
     if (4*n==5*k) {
       dv = 4;
       dc = 20;
     }
+    // 15*(n-k) = (15/4)*4*(n-k) = (15/4)*k = 3*n
+    if (4*n==5*k) {
+      dv = 3;
+      dc = 15;
+    }
+    int c, r;
     c = n;
     r = n-k;
     intvec row_degrees(r, dc); // Example row degrees
@@ -35,6 +42,9 @@ int enc_dec::init(int k, int n, bool opt_avg_latency) {
     // Setup encoder
     code.create_encoder();
 
+    // Decoding iterations
+    max_iter = 20;
+    if (opt_avg_latency==1) max_iter = 50;
     return 0;
 }
 
@@ -64,7 +74,7 @@ int enc_dec::decode(llrvec &llr, bitvec &cw_est, bitvec &info_est) {
     for (int j=0; j<code.n_cols; ++j) float_llr[j] = (25.0/32768)*llr[j];
     //for (int j=0; j<code.n_cols; ++j) std::cout << float_llr[j];
     //std::cout << std::endl;
-    auto result =  code.decode(float_llr, 20, llrout, 0);
+    auto result =  code.decode(float_llr, max_iter, llrout, 0);
     //for (int j=0; j<code.n_cols; ++j) std::cout << llrout[j];
     //std::cout << std::endl;
     for (int j=0; j<code.n_cols; ++j) cw_est[j] = (llrout[j] <= 0 ? 1 : 0);

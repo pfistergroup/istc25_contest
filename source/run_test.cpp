@@ -22,23 +22,24 @@ struct test_point
   int n; // Number of codeword bits
   float esno;  // Array of SNR values for testing
   int n_block; // Array of block sizes for testing
+  int opt_avg; // Flag to optimize average (versus max) decoding latency
 };
 
 // Define set of tests
 test_point contest[N_TEST] =
 {
-  {64,256,1.0,2000},   // k=64 R=1/4
-  {128,512,0.1,2000},  // k=128 R=1/4
-  {256,1024,0.1,2000}, // k=256 R=1/4
-  {512,2048,0.1,2000}, // k=512 R=1/4
-  {64,128,1.0,2000},   // k=64 R=1/2
-  {128,256,1.0,2000},  // k=128 R=1/2
-  {256,512,1.0,2000},  // k=256 R=1/2
-  {512,1024,1.0,2000}, // k=512 R=1/2
-  {64,80,3.0,2000},    // k=64 R=4/5
-  {128,160,3.0,2000},  // k=128 R=4/5
-  {256,320,3.0,2000},  // k=256 R=4/5
-  {512,640,3.0,2000}   // k=512 R=4/5
+  {64,256,1.0,2000,0},   // k=64 R=1/4
+  {128,512,0.1,2000,0},  // k=128 R=1/4
+  {256,1024,0.1,2000,0}, // k=256 R=1/4
+  {512,2048,0.1,2000,0}, // k=512 R=1/4
+  {64,128,1.0,2000,0},   // k=64 R=1/2
+  {128,256,1.0,2000,0},  // k=128 R=1/2
+  {256,512,1.0,2000,0},  // k=256 R=1/2
+  {512,1024,1.0,2000,0}, // k=512 R=1/2
+  {64,80,3.0,2000,0},    // k=64 R=4/5
+  {128,160,3.0,2000,0},  // k=128 R=4/5
+  {256,320,3.0,2000,0},  // k=256 R=4/5
+  {512,640,3.0,2000,0}   // k=512 R=4/5
 };
 
 // Global defaults
@@ -121,7 +122,7 @@ void channel(const bitvec& cw, float esno, fltvec& llr_out) {
 }
 
 // Run all the tests in one round
-void run_test(int k, int n, float esno, int n_block, decoder_stats &stats)
+void run_test(int k, int n, float esno, int n_block, int opt_avg, decoder_stats &stats)
 {
   // Allocate variables
   bitvec info(k);
@@ -139,7 +140,7 @@ void run_test(int k, int n, float esno, int n_block, decoder_stats &stats)
   enc_dec entry;
 
   // Init encoder and decoder for entry
-  if (entry.init(k,n,0) != 0) {
+  if (entry.init(k,n,opt_avg) != 0) {
     // This submission does not handle this code
     std::cout << "Handle exception" << std::endl;
   }
@@ -182,9 +183,9 @@ void run_test(int k, int n, float esno, int n_block, decoder_stats &stats)
         }
     }
     //std::cout << std::endl;
-    if (bit_err > 0 && detect==1) {
-      std::cout << "wrong codeword?" << std::endl;
-    }
+    //if (bit_err > 0 && detect==1) {
+    //  std::cout << "wrong codeword?" << std::endl;
+    //}
 
     // Update statistics
     stats.update(1-detect, bit_err, enc_time, dec_time);
@@ -211,7 +212,7 @@ void run_test_number(int t, decoder_stats &stats)
   enc_dec entry;
 
   // Init encoder and decoder for entry
-  if (entry.init(test.k,test.n,0) != 0) {
+  if (entry.init(test.k,test.n,test.opt_avg) != 0) {
     // This submission does not handle this code
     std::cout << "Handle exception" << std::endl;
   }
@@ -223,7 +224,7 @@ void run_test_number(int t, decoder_stats &stats)
   if (default_esno > 0.0) esno = default_esno;
   if (default_nblock > 0) n_block = default_nblock;
 
-  run_test(test.k, test.n, esno, n_block, stats);
+  run_test(test.k, test.n, esno, n_block, test.opt_avg, stats);
 }
 
 
@@ -233,7 +234,7 @@ void run_single_test(int test_number) {
 
     // Run the specified test and output results
     test_point &test = contest[test_number];
-    run_test(test.n, test.k, test.esno, test.n_block, run_stats);
+    run_test(test.n, test.k, test.esno, test.n_block, test.opt_avg, run_stats);
     int n_sample = run_stats.n_sample();
     auto sum = run_stats.sum();
     std::array<float, 4> mean;
@@ -274,17 +275,17 @@ void run_test_file(std::string filename, std::string output_filename) {
     std::string line;
     while (std::getline(file, line)) {
         std::istringstream iss(line);
-        int k, n, n_block;
+        int k, n, n_block, opt_avg;
         float esno;
 
         // For each line, read 4 parameters: int k, int n, float esno, int n_block
-        if (!(iss >> k >> n >> esno >> n_block)) {
+        if (!(iss >> k >> n >> esno >> n_block >> opt_avg)) {
             std::cerr << "Error reading line: " << line << std::endl;
             continue;
         }
 
         // Run test with given parameters
-        run_test(k, n, esno, n_block, run_stats);
+        run_test(k, n, esno, n_block, opt_avg, run_stats);
 
         // Process results
         int n_sample = run_stats.n_sample();
@@ -324,44 +325,6 @@ OptionSpec options[] = {
 
 int main(int argc, char* argv[])
 {
-#if 0
-    // Set some limits ;-)
-    struct rlimit limit;
-    if (getrlimit(RLIMIT_DATA, &limit) == 0) {
-        // Set new soft limit to 1MB (example)
-        limit.rlim_cur = 1024 * 1024; 
-
-        // Set new hard limit to 2MB (example)
-        limit.rlim_max = 2 * 1024 * 1024;
-
-        // Apply the new limits
-        if (setrlimit(RLIMIT_DATA, &limit) != 0) {
-            perror("setrlimit data");
-            return 1;
-        }
-    } else {
-        perror("getrlimit data");
-        return 1;
-    }
-
-    if (getrlimit(RLIMIT_CPU, &limit) == 0) {
-        // Set new soft limit to 10s (example)
-        limit.rlim_cur = 10;
-
-        // Set new hard limit to 10s (example)
-        limit.rlim_max = 10;
-
-        // Apply the new limits
-        if (setrlimit(RLIMIT_CPU, &limit) != 0) {
-            perror("setrlimit cpu");
-            return 1;
-        }
-    } else {
-        perror("getrlimit cpu");
-        return 1;
-    }
-#endif
-
     // Parse options
     int argmin_result;
     std::map<std::string,std::string> parsedOptions;
