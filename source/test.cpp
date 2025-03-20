@@ -2,6 +2,8 @@
 #include <vector>
 #include <random>
 #include <cmath>
+#include <chrono>
+#include <algorithm>
 #include "ldpc.h"
 
 // Function declarations for tests
