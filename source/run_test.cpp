@@ -234,7 +234,7 @@ void run_single_test(int test_number) {
 
     // Run the specified test and output results
     test_point &test = contest[test_number];
-    run_test(test.n, test.k, test.esno, test.n_block, test.opt_avg, run_stats);
+    run_test(test.k, test.n, test.esno, test.n_block, test.opt_avg, run_stats);
     int n_sample = run_stats.n_sample();
     auto sum = run_stats.sum();
     std::array<float, 4> mean;
