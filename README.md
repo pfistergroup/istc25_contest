@@ -4,7 +4,7 @@ Quick start:
   - On an computer with Ubuntu linux, you can install g++ and make using "sudo apt install build-essential".
   - After that you can compile the example code by executing "make" in the "source" directory.
   - Try executing "run_test" to see what commands are available.
-  - Try executing "run_test -o test_output.txt -f test_params.txt" to see how the testing prcoess works.
+  - Try executing "run_test -o test_output.txt -f test_params.txt" to see how the testing process works.
 
 The code is located in the course directory and the key files are:
   enc_dec.h
