@@ -13,7 +13,7 @@ run_test: enc_dec.o run_test.o ldpc.o argmin.o
 test: test.o ldpc.o
 	$(CXX) $(LDFLAGS) -o $@ $^
 
-%.o: %.cpp
+%.o: %.cpp %.h
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 clean:

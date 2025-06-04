@@ -41,7 +41,7 @@ void test_no_error(ldpc &code, int verbose) {
     }
 
     // Decode
-    int result = code.decode(llr, 20, llr_est, 0);
+    int result = code.decode(llr, 20, llr_est);
 
     if (verbose) {
         std::cout << "Decoded LLRs: ";
@@ -85,7 +85,7 @@ void test_single_error(ldpc &code, float llr_mag, int verbose) {
         std::cout << "Decoding..." << std::endl;
     }
 
-    int result = code.decode(llr, 20, llr_out, verbose);
+    int result = code.decode(llr, 20, llr_out);
 
     if (verbose) {
         std::cout << "LLR output from decoder: ";
@@ -137,7 +137,7 @@ int test_gaussian_noise(ldpc &code, float esno, int verbose) {
         std::cout << std::endl;
     }
 
-    int result = code.decode(llr, 20, llr_out, verbose);
+    int result = code.decode(llr, 20, llr_out);
 
     if (verbose) {
         std::cout << "LLR output from decoder: ";

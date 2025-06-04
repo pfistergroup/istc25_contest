@@ -43,7 +43,7 @@ class ldpc
     void create_encoder(int verbose = 0);
 
     // Belief-propagation decoding
-    int decode(fltvec &llr_in, int n_iter, fltvec &llr_out, int verbose = 0);
+    int decode(fltvec &llr_in, int n_iter, fltvec &llr_out);
  
     // Encode info bits into n_cols codeword bits
     void encode(bitvec &info, bitvec &cw);

@@ -171,10 +171,11 @@ void run_test(int k, int n, float esno, int n_block, int opt_avg, decoder_stats 
 
     // Decode message
     auto dec_start = std::chrono::high_resolution_clock::now();
-    int detect = entry.decode(llr, cw_est, info_est);
+    //int detect = entry.decode(llr, cw_est, info_est);
+    entry.decode(llr, cw_est, info_est);
     auto dec_time = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - dec_start).count();
 
-    // Count number of bit errors
+    // Count number of information bit errors
     int bit_err = 0;
     for (int j = 0; j < k; ++j) {
         //std::cout << info_est[j] << " ";
@@ -182,13 +183,9 @@ void run_test(int k, int n, float esno, int n_block, int opt_avg, decoder_stats 
             ++bit_err;
         }
     }
-    //std::cout << std::endl;
-    //if (bit_err > 0 && detect==1) {
-    //  std::cout << "wrong codeword?" << std::endl;
-    //}
 
     // Update statistics
-    stats.update(1-detect, bit_err, enc_time, dec_time);
+    stats.update(bit_err > 0, bit_err, enc_time, dec_time);
   }
 }
 

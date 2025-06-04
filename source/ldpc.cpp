@@ -199,7 +199,7 @@ void ldpc::random(int r, int c, intvec &rd, intvec &cd) {
         is_simple = true;
         std::set<std::pair<int, int>> edge_set;
         for (size_t i = 0; i < row.size(); ++i) {
-            if (is_simple==true && (row[i] == col[i] || !edge_set.insert({row[i], col[i]}).second)) {
+            if (is_simple==true && (!edge_set.insert({row[i], col[i]}).second)) {
                 is_simple = false;
                 fail++;
                 break;
@@ -237,8 +237,9 @@ void ldpc::create_encoder(int verbose) {
             }
         }
         if (!found) {
-            std::cerr << "Error: Initial square submatrix is not invertible." << std::endl;
-            return;
+            //std::cerr << "Error: Initial no square submatrix is invertible." << std::endl;
+            //return;
+            break;
         }
 
         // Use row i to cancel all ones in column perm[i] except row i
@@ -311,15 +312,21 @@ void ldpc::create_encoder(int verbose) {
 }
 
 // Constants
-const float MIN_LLR = 1e-5f;
+const bool DEC_VERBOSE = 0;
+const bool MIN_SUM = 1;
+const float BIT_NODE_SCALE = 1.0;
+const float MIN_SUM_OFFSET = 0.3;
+const float MIN_LLR = 25.0f / 32768.0;
 const float MAX_LLR = 17.0f;
 
 // Belief-propagation decoding
-int ldpc::decode(fltvec &llr_in, int n_iter, fltvec &llr_out, int verbose) {
+int ldpc::decode(fltvec &llr_in, int n_iter, fltvec &llr_out) {
 
     size_t n_edges = row.size(); // Calculate number of edges
     fltvec bit_accum(n_cols, 0.0f);
+    bitvec check_sign(n_rows,0);
     fltvec check_accum(n_rows, 0.0f);
+    fltvec check_accum2(n_rows, 0.0f);
     fltvec bit_message(n_edges, 0.0f);
     fltvec check_message(n_edges, 0.0f);
     bool is_codeword;
@@ -329,40 +336,78 @@ int ldpc::decode(fltvec &llr_in, int n_iter, fltvec &llr_out, int verbose) {
 
     // Iterative decoding
     for (int iter = 0; iter < n_iter; ++iter) {
-        if (verbose) std::cout << "Iteration " << iter << std::endl;
-        // Clip bit messages
-        for (size_t i = 0; i < n_edges; ++i) {
-            float temp = bit_message[i];
-            bit_message[i] = (temp <= 0 ? -1 : 1) * std::max(MIN_LLR, std::min(MAX_LLR, std::abs(temp)));
-            if (verbose) std::cout << bit_message[i] << " ";
-        }
-        if (verbose) std::cout << std::endl;
+        if (DEC_VERBOSE) std::cout << "Iteration " << iter << std::endl;
 
-        // Check node update
-        std::fill(check_accum.begin(), check_accum.end(), 1.0f);
-        for (size_t i = 0; i < n_edges; ++i) {
-            check_accum[row[i]] *= std::tanh(bit_message[i]/2.0);
+        // If SUM PRODUCT, clip bit messages
+        if (!MIN_SUM) {
+            for (size_t i = 0; i < n_edges; ++i) {
+                float temp = bit_message[i];
+                bit_message[i] = (temp <= 0 ? -1 : 1) * std::max(MIN_LLR, std::min(MAX_LLR, std::abs(temp)));
+                if (DEC_VERBOSE) std::cout << bit_message[i] << " ";
+            }
+            if (DEC_VERBOSE) std::cout << std::endl;
         }
-        for (size_t i = 0; i < n_edges; ++i) {
-            check_message[i] = 2.0 * std::atanh(check_accum[row[i]]/std::tanh(bit_message[i]/2.0));
-            if (verbose) std::cout << check_message[i] << " ";
+
+        // Choose MIN SUM versus SUM PRODUCT update
+        if (MIN_SUM) {
+            // Setup
+            std::fill(check_sign.begin(), check_sign.end(), 0);
+            std::fill(check_accum2.begin(), check_accum2.end(), MAX_LLR);
+            std::fill(check_accum.begin(), check_accum.end(), MAX_LLR);
+
+            // MIN SUM Check node update
+            for (size_t i = 0; i < n_edges; ++i) {
+                check_sign[row[i]] ^= std::signbit(bit_message[i]);
+                if (std::abs(bit_message[i]) < check_accum[row[i]]) {
+                    check_accum2[row[i]] = check_accum[row[i]];
+                    check_accum[row[i]] = std::abs(bit_message[i]);
+                }
+                else if (std::abs(bit_message[i]) < check_accum2[row[i]]) {
+                    check_accum2[row[i]] = std::abs(bit_message[i]);
+                }
+            }
+            for (size_t i = 0; i < n_edges; ++i) {
+                float temp = check_accum[row[i]];
+                if (std::abs(bit_message[i])==temp) temp = check_accum2[row[i]];
+                temp -= MIN_SUM_OFFSET;
+                check_message[i] = (check_sign[row[i]] ^ std::signbit(bit_message[i]) ?  -temp : temp);
+                if (DEC_VERBOSE) std::cout << check_message[i] << " ";
+            }
+            if (DEC_VERBOSE) std::cout << std::endl;
         }
-        if (verbose) std::cout << std::endl;
+        else {
+            // SUM PRODUCT Check node update
+            std::fill(check_accum.begin(), check_accum.end(), 1.0f);
+            for (size_t i = 0; i < n_edges; ++i) {
+                check_accum[row[i]] *= std::tanh(bit_message[i]/2.0);
+            }
+            for (size_t i = 0; i < n_edges; ++i) {
+                check_message[i] = 2.0 * std::atanh(check_accum[row[i]]/std::tanh(bit_message[i]/2.0));
+                if (DEC_VERBOSE) std::cout << check_message[i] << " ";
+            }
+            if (DEC_VERBOSE) std::cout << std::endl;
+        }
 
         // Check for early termination
-        is_codeword = std::all_of(check_accum.begin(), check_accum.end(), [](float value) { return (value>0); });
-        if (is_codeword) break;
+        if (MIN_SUM) {
+            is_codeword = std::all_of(check_sign.begin(), check_sign.end(), [](int value) { return (value==0); });
+        }
+        else {
+            is_codeword = std::all_of(check_accum.begin(), check_accum.end(), [](float value) { return (value>0); });
+        }
+
+        // Terminate if all checks satisfied after one iteration
+        if (iter>0 && is_codeword) break;
       
         // Variable node update
         for (size_t i = 0; i < n_cols; ++i) {
-            bit_accum[i] = llr_in[i];
+            bit_accum[i] = llr_in[i]/BIT_NODE_SCALE;
         }
-        //bit_accum = llr_in;
         for (size_t i = 0; i < n_edges; ++i) {
             bit_accum[col[i]] += check_message[i];
         }
         for (size_t i = 0; i < n_edges; ++i) {
-            bit_message[i] = bit_accum[col[i]] - check_message[i];
+            bit_message[i] = BIT_NODE_SCALE*(bit_accum[col[i]] - check_message[i]);
         }
     }
 
@@ -370,31 +415,8 @@ int ldpc::decode(fltvec &llr_in, int n_iter, fltvec &llr_out, int verbose) {
     for (size_t j = 0; j < n_cols; ++j) {
         llr_out[j] = bit_accum[j];
     }
-    //llr_out = bit_accum;
-    if (verbose) std::cout << "Checking if codeword..." << std::endl;
-    //for (size_t i = 0; i < n_cols; ++i) {
-    //    if (llr_out[i] <= 0.0f) {
-    //        count++;
-    //        std::cout << i << "=" << llr_out[i] << " ";
-    //    }
-    //}
-    //std::cout << "Count " << count << std::endl;
 
-    // Check if codeword
-    //std::vector<int> checks(n_rows, 0);
-    //for (size_t i = 0; i < n_edges; ++i) {
-    //  if (llr_out[col[i]] != 0.0f) {
-    //    checks[row[i]] ^= (llr_out[col[i]] < 0.0f ? 1 : 0);
-    //  }
-    //  else {
-    //    return 0;
-    //  }
-    //}
-
-    if (verbose) {
-        //std::cout << "Check results: ";
-        //for (const auto &val: checks) std::cout << val << " ";
-        //std::cout << std::endl;
+    if (DEC_VERBOSE) {
         std::cout << "Decoding finished." << std::endl;
         std::cout << "Output LLRs: ";
         for (const auto &llr_value : llr_out) {
@@ -404,8 +426,7 @@ int ldpc::decode(fltvec &llr_in, int n_iter, fltvec &llr_out, int verbose) {
     }
 
     // Return true if and only if codeword
-    //bool is_codeword = std::all_of(checks.begin(), checks.end(), [](int value) { return (value==0); });
-    if (verbose) {
+    if (DEC_VERBOSE) {
         std::cout << "Is codeword: " << is_codeword << std::endl;
         std::cout << "Returning from decode function." << std::endl;
     }
