@@ -10,7 +10,6 @@
 #include <fstream>
 #include <sstream>
 #include "enc_dec.h"
-#include "ldpc.h"
 #include "argmin.h"
 
 const int N_TEST = 12;
@@ -241,9 +240,9 @@ void run_single_test(int test_number) {
     //std::cout << n_sample << std::endl;
     std::cout << "Test " << test_number << ": "
               << "Block: " << sum[0] << "/" << n_sample << " = " << mean[0] << ", "
-              << "Info Bit Errors: " << sum[1]  << "/" << n_sample*contest[test_number].k << " = " << contest[test_number].k*mean[1] << ", "
+              << "Info Bit Errors: " << sum[1]  << "/" << n_sample*contest[test_number].k << " = " << mean[1]/contest[test_number].k << ", "
               << "Encoding Time (ns): " << sum[2]  << "/" << n_sample << " = " << mean[2] << ", "
-              << "Decoding Time (\xC2\xB5s): " << sum[3]  << "/" << n_sample << " = " << mean[3] << ", " << std::endl;
+              << "Decoding Time (us): " << sum[3]  << "/" << n_sample << " = " << mean[3] << ", " << std::endl;
 }
 
 void run_test_file(std::string filename, std::string output_filename) {
@@ -295,9 +294,9 @@ void run_test_file(std::string filename, std::string output_filename) {
         // Report results
         *outputStream << "Test with parameters (k=" << k << ", n=" << n << ", esno=" << esno << ", n_block=" << n_block << "): "
                   << "Block: " << sum[0] << "/" << n_sample << " = " << mean[0] << ", "
-                  << "Info Bit Errors: " << sum[1]  << "/" << n_sample*k << " = " << k*mean[1] << ", "
+                  << "Info Bit Errors: " << sum[1]  << "/" << n_sample*k << " = " << mean[1]/k << ", "
                   << "Encoding Time (ns): " << sum[2]  << "/" << n_sample << " = " << mean[2] << ", "
-                  << "Decoding Time (\xC2\xB5s): " << sum[3]  << "/" << n_sample << " = " << mean[3] << ", " << std::endl;
+                  << "Decoding Time (us): " << sum[3]  << "/" << n_sample << " = " << mean[3] << ", " << std::endl;
 
         // Write stats
         if (!output_filename.empty()) {

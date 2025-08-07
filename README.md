@@ -10,7 +10,7 @@ The code is located in the course directory and the key files are:
   enc_dec.h
   enc_dec.cpp
   run_test.cpp
-  test_params.txt
+  test_params_low.txt
 
 The file enc_dec.h is the stub that shows the calling structure for the test bed.
 The file enc_dec.cpp contains an example implementation based on a very basic LDPC implementation.

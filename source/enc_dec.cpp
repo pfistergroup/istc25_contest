@@ -12,39 +12,46 @@ int enc_dec::init(int k, int n, bool opt_avg_latency) {
     // Contestants should replace this code
     //   This code should initialize the encoder-decoder
 
-    std::string fname = "codes/ldpc_"+std::to_string(n)+"_"+std::to_string(k);
+    // If _g code files exists, use that
+    std::string fname = "../codes/ldpc_"+std::to_string(n)+"_"+std::to_string(k);
     if (std::filesystem::exists(fname+"_g"))
     {
       // read code
       code.read_alist(fname+"_g");
     }
-    // create random code
+    // Otherwise, create random code
     else 
     {
 
     // Here we provide example code that interfaces to a simple LDPC setup
     // Setup random [n,k] code
     int dv, dc;
+    // rate 1/4
     if (n==4*k) {
       dv = 3;
       dc = 4;
     }
+    // rate 1/2
     if (n==2*k) {
       dv = 3;
       dc = 6;
     }
     // 20*(n-k) = 5*4*(n-k) = 5*k = 4*n
+    // rate 4/5
     if (4*n==5*k) {
+      // Use bit degree 4
       dv = 4;
       dc = 20;
     }
     // 15*(n-k) = (15/4)*4*(n-k) = (15/4)*k = 3*n
     if (4*n==5*k) {
+      // Use bit degree 3
       dv = 3;
       dc = 15;
     }
     // 15*(n-k) = (15/4)*4*(n-k) = (15/4)*k = 3*n
     if (4*n==5*k) {
+      // Use bit degree 2
       dv = 2;
       dc = 10;
     }
