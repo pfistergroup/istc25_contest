@@ -21,6 +21,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages          # NEW
 
+# helper for an N-colour colormap without deprecation warnings
+def _get_discrete_cmap(name: str, n: int):
+    try:                                    # Matplotlib ≥ 3.7 preferred API
+        return plt.colormaps.get_cmap(name).resampled(n)
+    except AttributeError:                  # backward compatibility
+        return plt.cm.get_cmap(name, n)
+
 try:
     from scipy.stats import gaussian_kde            # KDE helper
 except ImportError:                                 # fail-gracefully
@@ -263,7 +270,7 @@ def overlay_hists(
     Each stub gets its own colour, alpha-blended bars and KDE curve.
     """
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 4))
-    cmap   = plt.cm.get_cmap("tab10", len(stub_data))
+    cmap = _get_discrete_cmap("tab10", len(stub_data))
     colors = [cmap(i) for i in range(len(stub_data))]
 
     for (stub, (enc, dec, _, _)), col in zip(sorted(stub_data.items()), colors):
