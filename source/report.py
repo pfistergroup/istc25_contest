@@ -33,27 +33,31 @@ def parse_logs(*paths: str | Path) -> tuple[np.ndarray, np.ndarray, np.ndarray, 
     for raw in paths:
         p = Path(raw).expanduser()
         if p.is_dir():
-            # keep *.log and extension-less files ONLY
             for child in p.iterdir():
                 if not child.is_file():
                     continue
-                if child.suffix == ".txt":          # ❶ skip *.txt
-                    continue
-                if child.suffix not in (".log", ""):
+                suf = child.suffix.lower()
+
+                if suf == ".txt":                 # ignore *.txt
                     continue
 
-                # ❷ keep the file only when a sibling “[stub].out” exists
-                stub  = child.stem                   # filename without extension
-                out_f = child.with_name(stub + ".out")
-                if not out_f.is_file():
+                if suf == ".out":                 # always keep *.out (they ARE the stub)
+                    files.append(child)
                     continue
 
-                files.append(child)
+                if suf in (".log", ""):           # .log or extension-less → keep only
+                    stub  = child.stem            # when companion stub.out exists
+                    if not child.with_name(stub + ".out").is_file():
+                        continue
+                    files.append(child)
             continue        # directory handled – move to next argument
         else:
             if not p.is_file():
                 raise FileNotFoundError(f"Log file not found: {p}")
             files.append(p)
+
+    if not files:
+        raise ValueError("No log files found after filtering.")
 
     # Now parse every discovered file
     for p in files:
@@ -99,8 +103,8 @@ def parse_logs(*paths: str | Path) -> tuple[np.ndarray, np.ndarray, np.ndarray, 
     return (
         np.asarray(blkerr_lst, dtype=np.int32),
         np.asarray(biterrs_lst, dtype=np.int32),
-        np.asarray(enc_lst, dtype=np.int32),
-        np.asarray(dec_lst, dtype=np.int32),
+        np.asarray(enc_lst, dtype=np.float32),
+        np.asarray(dec_lst, dtype=np.float32),
     )
 
 
