@@ -173,7 +173,7 @@ void run_test(int k, int n, float esno, int n_block, int opt_avg, decoder_stats 
     auto dec_start = std::chrono::high_resolution_clock::now();
     //int detect = entry.decode(llr, cw_est, info_est);
     entry.decode(llr, cw_est, info_est);
-    auto dec_time = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - dec_start).count();
+    auto dec_time = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - dec_start).count();
 
     // Count number of information bit errors
     int bit_err = 0;
@@ -243,7 +243,7 @@ void run_single_test(int test_number) {
               << "Block: " << sum[0] << "/" << n_sample << " = " << mean[0] << ", "
               << "Info Bit Errors: " << sum[1]  << "/" << n_sample*contest[test_number].k << " = " << mean[1]/contest[test_number].k << ", "
               << "Encoding Time (ns): " << sum[2]  << "/" << n_sample << " = " << mean[2] << ", "
-              << "Decoding Time (us): " << sum[3]  << "/" << n_sample << " = " << mean[3] << ", " << std::endl;
+              << "Decoding Time (ns): " << sum[3]  << "/" << n_sample << " = " << mean[3] << ", " << std::endl;
 }
 
 void run_test_file(std::string filename, std::string output_filename) {
@@ -300,7 +300,7 @@ void run_test_file(std::string filename, std::string output_filename) {
                   << "Block: " << sum[0] << "/" << n_sample << " = " << mean[0] << ", "
                   << "Info Bit Errors: " << sum[1]  << "/" << n_sample*k << " = " << mean[1]/k << ", "
                   << "Encoding Time (ns): " << sum[2]  << "/" << n_sample << " = " << mean[2] << ", "
-                  << "Decoding Time (us): " << sum[3]  << "/" << n_sample << " = " << mean[3] << ", " << std::endl;
+                  << "Decoding Time (ns): " << sum[3]  << "/" << n_sample << " = " << mean[3] << ", " << std::endl;
 
         // Write stats
         if (!output_filename.empty()) {
