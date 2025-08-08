@@ -261,40 +261,26 @@ def _grid_hists(
 def overlay_hists(
     stub_data: dict[str, tuple[np.ndarray, np.ndarray, float, float]],
     *,
-    bins: int = 50
+    bins: int = 50,
+    metric: str = "dec"
 ) -> plt.Figure:
-    """
-    One figure, two axes:
-        • left  – overlaid encoding-time histograms
-        • right – overlaid decoding-time histograms
-    Each stub gets its own colour, alpha-blended bars and KDE curve.
-    """
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 4))
-    cmap = _get_discrete_cmap("tab10", len(stub_data))
-    colors = [cmap(i) for i in range(len(stub_data))]
+    fig, ax = plt.subplots(figsize=(6, 4))
+    cmap   = _get_discrete_cmap("tab10", len(stub_data))
+    colours = [cmap(i) for i in range(len(stub_data))]
 
-    for (stub, (enc, dec, _, _)), col in zip(sorted(stub_data.items()), colors):
-        # Encoding
-        ax1.hist(enc, bins=bins, density=True, alpha=0.4,
-                 color=col, edgecolor="black", label=stub)
-        xs = np.linspace(enc.min(), enc.max(), 300)
-        ax1.plot(xs, gaussian_kde(enc)(xs), color=col, lw=1.5)
+    for (stub, (enc, dec, _, _)), col in zip(sorted(stub_data.items()), colours):
+        data = enc if metric == "enc" else dec
+        ax.hist(data, bins=bins, density=True, alpha=0.4,
+                color=col, edgecolor="black", label=stub)
+        if gaussian_kde is not None and len(data) > 1:
+            xs = np.linspace(data.min(), data.max(), 300)
+            ax.plot(xs, gaussian_kde(data)(xs), color=col, lw=1.5)
 
-        # Decoding
-        ax2.hist(dec, bins=bins, density=True, alpha=0.4,
-                 color=col, edgecolor="black")
-        xs = np.linspace(dec.min(), dec.max(), 300)
-        ax2.plot(xs, gaussian_kde(dec)(xs), color=col, lw=1.5)
-
-    ax1.set_title("Encoding-time distributions")
-    ax1.set_xlabel("Time (µs)")
-    ax1.set_ylabel("Density")
-    ax1.legend(loc="upper right", fontsize="small")
-
-    ax2.set_title("Decoding-time distributions")
-    ax2.set_xlabel("Time (µs)")
-    ax2.set_ylabel("Density")
-
+    which = "Encoding" if metric == "enc" else "Decoding"
+    ax.set_title(f"{which}-time distributions")
+    ax.set_xlabel("Time (µs)")
+    ax.set_ylabel("Density")
+    ax.legend(loc="upper right", fontsize="small")
     fig.tight_layout()
     return fig
 
@@ -364,6 +350,21 @@ def plot_esno_vs_dec(data: dict[str, tuple[float, float]]) -> plt.Figure:
     return fig
 # ---------------------------------------------------------------------------
 
+def plot_enc_hist(enc_t: np.ndarray, bler: float, ber: float,
+                  stub: str, bins: int = 50) -> plt.Figure:
+    fig, ax = plt.subplots(figsize=(6, 4))
+    ax.hist(enc_t, bins=bins, color="steelblue",
+            edgecolor="black", alpha=0.7)
+    ax.set_title(f"{stub} – Encoding time")
+    ax.set_xlabel("Time (µs)")
+    ax.set_ylabel("Count")
+    txt = f"BLER = {bler:.4f}\nBER  = {ber:.4e}"
+    ax.text(0.95, 0.95, txt, transform=ax.transAxes, ha="right",
+            va="top", fontsize=10,
+            bbox=dict(boxstyle="round", fc="white",
+                      ec="gray", alpha=0.8))
+    return fig
+
 def plot_dec_hist(dec_t: np.ndarray, bler: float, ber: float,
                   stub: str, bins: int = 50) -> plt.Figure:
     fig, ax = plt.subplots(figsize=(6, 4))
@@ -401,6 +402,9 @@ def main() -> None:
     parser.add_argument("logs", nargs="*", help="Path(s) to log files")   # CHANGED ‘+’ → ‘*’
     parser.add_argument("--bits-per-block", type=int, default=None, help="Bits per block (optional)")
     parser.add_argument("--bins", type=int, default=50, help="Histogram bin count")
+    parser.add_argument("--metric", choices=["enc", "dec"], default="dec",
+                        help="Which timing metric to plot: "
+                             "'enc' for encoding, 'dec' for decoding (default)")
     parser.add_argument("--k",  type=int, help="Number of information bits")      # NEW
     parser.add_argument("--n",  type=int, help="Number of coded bits")            # NEW
     parser.add_argument("--out", type=str, help="Output PDF path")                # NEW
@@ -471,7 +475,7 @@ def main() -> None:
             bler, ber          = calc_rates(blk, bit, args.bits_per_block)
             stub_data[stub]    = (enc, dec, bler, ber)
 
-        fig = overlay_hists(stub_data, bins=args.bins)
+        fig = overlay_hists(stub_data, bins=args.bins, metric=args.metric)
 
         if args.out:
             out_path = Path(args.out)
@@ -534,19 +538,21 @@ def main() -> None:
     # ------------- plotting / saving --------------------------------
     if len(stub_data) == 1:
         stub, (enc, dec, bler, ber) = next(iter(stub_data.items()))
-        fig = plot_hist(enc, dec, bler, ber, bins=args.bins, stub=stub, show=not args.out, smooth=args.smooth)
+        if args.metric == "enc":
+            fig = plot_enc_hist(enc, bler, ber, stub, bins=args.bins)
+        else:
+            fig = plot_dec_hist(dec, bler, ber, stub, bins=args.bins)
         if args.out:
             fig.savefig(args.out)
             plt.close(fig)
             print(f"Wrote histogram to {args.out}")
     else:
         fig_enc, fig_dec = _grid_hists(stub_data, bins=args.bins, smooth=args.smooth)
+        fig_use = fig_enc if args.metric == "enc" else fig_dec
         if args.out:
             with PdfPages(args.out) as pdf:
-                pdf.savefig(fig_dec)    # decoding histograms first
-                pdf.savefig(fig_enc)    # encoding histograms second
-            plt.close(fig_dec)
-            plt.close(fig_enc)
+                pdf.savefig(fig_use)
+            plt.close(fig_use)
             print(f"Wrote {len(stub_data)} histograms to {args.out}")
         else:
             plt.show()
