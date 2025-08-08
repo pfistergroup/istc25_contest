@@ -47,12 +47,19 @@ def parse_logs(*paths: str | Path) -> tuple[np.ndarray, np.ndarray, np.ndarray, 
     # Now parse every discovered file
     for p in files:
         # tolerate odd encodings → silently drop undecodable bytes
+        print(f"Parsing log file: {p}")
         with p.open(encoding="utf-8", errors="ignore") as fh:
             for line in fh:
                 line = line.strip()
                 if not line or line.startswith("#"):
                     continue  # skip comments / blanks
-                be, bi, et, dt, *_ = map(int, line.split())
+                parts = line.split()
+                if len(parts) < 4:              # need at least 4 fields
+                    continue                    # skip malformed / non-stat lines
+                try:
+                    be, bi, et, dt = map(int, parts[:4])
+                except ValueError:              # at least one field not integer
+                    continue                    # skip this line
                 blkerr_lst.append(be)
                 biterrs_lst.append(bi)
                 enc_lst.append(et)
