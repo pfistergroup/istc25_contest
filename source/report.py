@@ -461,11 +461,26 @@ def main() -> None:
         if args.k is None or args.n is None:
             parser.error("--overlay requires --k and --n to be specified.")
 
-        stub_logs: dict[str, list[Path]] = (
-            {Path(p).stem: [Path(p)] for p in args.logs}     # explicit files
-            if args.logs else
-            find_logs_by_stub(args.k, args.n)               # auto search
-        )
+        # Build {stub: [Path, …]} from the --logs arguments (dirs or files).
+        stub_logs: dict[str, list[Path]] = {}
+
+        if args.logs:                               # user supplied items
+            for raw in args.logs:
+                p = Path(raw)
+                if p.is_dir():                      # directory → scan inside
+                    for stub, plist in find_logs_by_stub(args.k, args.n,
+                                                          directory=p).items():
+                        stub_logs.setdefault(stub, []).extend(plist)
+                else:                               # single file
+                    if not p.is_file():
+                        continue
+                    # derive stub from filename before '_k_n'
+                    stem = p.stem
+                    stub = stem.split(f"_{args.k}_{args.n}", 1)[0] or stem
+                    stub_logs.setdefault(stub, []).append(p)
+        else:                                       # no --logs → auto search in cwd
+            stub_logs = find_logs_by_stub(args.k, args.n)
+
         if not stub_logs:
             parser.error("No log files found for overlay.")
 
