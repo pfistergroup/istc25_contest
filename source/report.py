@@ -60,22 +60,42 @@ def parse_logs(*paths: str | Path) -> tuple[np.ndarray, np.ndarray, np.ndarray, 
         # tolerate odd encodings → silently drop undecodable bytes
         print(f"Parsing log file: {p}")
         with p.open(encoding="utf-8", errors="ignore") as fh:
+            n_from_file = 0
             for line in fh:
                 line = line.strip()
                 if not line or line.startswith("#"):
-                    continue  # skip comments / blanks
+                    continue
                 parts = line.split()
-                if len(parts) < 4:              # need at least 4 fields
-                    continue                    # skip malformed / non-stat lines
-                try:
-                    be, bi, et, dt = map(int, parts[:4])
-                except ValueError:              # at least one field not integer
-                    continue                    # skip this line
+
+                # ---- recognise line formats ---------------------------------
+                if len(parts) == 4:                       # blkerr biterrs enc dec
+                    try:
+                        be, bi        = map(int,   parts[:2])
+                        et, dt        = map(float, parts[2:4])
+                    except ValueError:
+                        continue
+
+                elif len(parts) >= 8:                     # k n esno nblk blk bit enc dec
+                    try:
+                        be, bi        = map(int,   parts[4:6])
+                        et, dt        = map(float, parts[6:8])
+                    except ValueError:
+                        continue
+                else:
+                    continue
+                # ----------------------------------------------------------------
+
                 blkerr_lst.append(be)
                 biterrs_lst.append(bi)
                 enc_lst.append(et)
                 dec_lst.append(dt)
+                n_from_file += 1
 
+            if n_from_file == 0:
+                print(f"  ⚠️  no valid log lines found in {p}")
+
+    if not blkerr_lst:
+        raise ValueError("No valid log entries parsed – nothing to plot.")
     return (
         np.asarray(blkerr_lst, dtype=np.int32),
         np.asarray(biterrs_lst, dtype=np.int32),
@@ -86,6 +106,8 @@ def parse_logs(*paths: str | Path) -> tuple[np.ndarray, np.ndarray, np.ndarray, 
 
 def calc_rates(blkerr: np.ndarray, biterrs: np.ndarray, bits_per_block: int | None = None) -> tuple[float, float]:
     """Compute BLER and BER."""
+    if len(blkerr) == 0:
+        raise ValueError("Empty input – cannot compute rates.")
     bler = float(blkerr.mean())
     if bits_per_block and bits_per_block > 0:
         ber = biterrs.sum() / (bits_per_block * len(blkerr))
@@ -357,7 +379,10 @@ def main() -> None:
         return
     # -------------------------------------------------------------------
 
-    blk, bit, enc, dec = parse_logs(*args.logs)
+    try:
+        blk, bit, enc, dec = parse_logs(*args.logs)
+    except ValueError as e:
+        parser.error(str(e))
     bler, ber = calc_rates(blk, bit, args.bits_per_block)
     plot_hist(enc, dec, bler, ber, bins=args.bins)
 
