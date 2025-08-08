@@ -21,6 +21,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages          # NEW
 
+try:
+    from scipy.stats import gaussian_kde            # KDE helper
+except ImportError:                                 # fail-gracefully
+    gaussian_kde = None
+
 import math  # NEW
 
 
@@ -134,6 +139,7 @@ def plot_hist(
     bins: int = 50,
     stub: str | None = None,
     show: bool = True,
+    smooth: bool = False,
 ) -> plt.Figure:
     """
     Create histograms for encoding / decoding times and return the Figure.
@@ -143,15 +149,23 @@ def plot_hist(
     """
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 4))
 
-    ax1.hist(enc_t, bins=bins, color="steelblue", edgecolor="black", alpha=0.7)
+    ax1.hist(enc_t, bins=bins, color="steelblue", edgecolor="black", alpha=0.7, density=smooth)
     ax1.set_title("Encoding time distribution")
     ax1.set_xlabel("Time (µs)")
-    ax1.set_ylabel("Count")
+    ax1.set_ylabel("Count" if not smooth else "Density")
 
-    ax2.hist(dec_t, bins=bins, color="salmon", edgecolor="black", alpha=0.7)
+    if smooth and gaussian_kde is not None and len(enc_t) > 1:
+        xs = np.linspace(enc_t.min(), enc_t.max(), 300)
+        ax1.plot(xs, gaussian_kde(enc_t)(xs), color="navy", lw=1.5)
+
+    ax2.hist(dec_t, bins=bins, color="salmon", edgecolor="black", alpha=0.7, density=smooth)
     ax2.set_title("Decoding time distribution")
     ax2.set_xlabel("Time (µs)")
-    ax2.set_ylabel("Count")
+    ax2.set_ylabel("Count" if not smooth else "Density")
+
+    if smooth and gaussian_kde is not None and len(dec_t) > 1:
+        xs = np.linspace(dec_t.min(), dec_t.max(), 300)
+        ax2.plot(xs, gaussian_kde(dec_t)(xs), color="darkred", lw=1.5)
 
     txt = f"BLER = {bler:.4f}\nBER  = {ber:.4e}"
     fig.text(0.92, 0.5, txt, transform=fig.transFigure, fontsize=12, va="center", ha="left")
@@ -167,6 +181,7 @@ def _grid_hists(
     stub_data: dict[str, tuple[np.ndarray, np.ndarray, float, float]],
     *,
     bins: int = 50,
+    smooth: bool = False,
 ) -> tuple[plt.Figure, plt.Figure]:
     """
     Return two figures:
@@ -190,10 +205,13 @@ def _grid_hists(
         r, c = divmod(idx, cols)
 
         ax_e = axes_enc[r, c]
-        ax_e.hist(enc, bins=bins, color="steelblue", edgecolor="black", alpha=0.7)
+        ax_e.hist(enc, bins=bins, color="steelblue", edgecolor="black", alpha=0.7, density=smooth)
         ax_e.set_title(stub)
         ax_e.set_xlabel("Enc time (µs)")
-        ax_e.set_ylabel("Cnt")
+        ax_e.set_ylabel("Cnt" if not smooth else "Density")
+        if smooth and gaussian_kde is not None and len(enc) > 1:
+            xs = np.linspace(enc.min(), enc.max(), 300)
+            ax_e.plot(xs, gaussian_kde(enc)(xs), color="navy", lw=1)
         ax_e.text(
             0.98,
             0.95,
@@ -206,10 +224,13 @@ def _grid_hists(
         )
 
         ax_d = axes_dec[r, c]
-        ax_d.hist(dec, bins=bins, color="salmon", edgecolor="black", alpha=0.7)
+        ax_d.hist(dec, bins=bins, color="salmon", edgecolor="black", alpha=0.7, density=smooth)
         ax_d.set_title(stub)
         ax_d.set_xlabel("Dec time (µs)")
-        ax_d.set_ylabel("Cnt")
+        ax_d.set_ylabel("Cnt" if not smooth else "Density")
+        if smooth and gaussian_kde is not None and len(dec) > 1:
+            xs = np.linspace(dec.min(), dec.max(), 300)
+            ax_d.plot(xs, gaussian_kde(dec)(xs), color="darkred", lw=1)
         ax_d.text(
             0.98,
             0.95,
@@ -337,7 +358,14 @@ def main() -> None:
     parser.add_argument("--out", type=str, help="Output PDF path")                # NEW
     parser.add_argument("--summary", action="store_true",
                         help="Plot Es/No vs avg-decoding-time from summary files")
+    parser.add_argument("-S", "--smooth", action="store_true",
+                        help="Use density histogram with KDE overlay")
     args = parser.parse_args()
+
+    # Graceful warning if --smooth requested but scipy not found
+    if args.smooth and gaussian_kde is None:
+        print("⚠️  SciPy not found – smooth histograms disabled.")
+        args.smooth = False
 
     # SUMMARY scatter mode -------------------------------------------------
     if args.summary:
@@ -379,7 +407,7 @@ def main() -> None:
                 bler, ber = calc_rates(blk, bit, args.bits_per_block)
                 stub_data[stub] = (enc, dec, bler, ber)
 
-            fig_enc, fig_dec = _grid_hists(stub_data, bins=args.bins)
+            fig_enc, fig_dec = _grid_hists(stub_data, bins=args.bins, smooth=args.smooth)
             pdf.savefig(fig_dec)   # page 1 – decoding hists (often the key metric)
             pdf.savefig(fig_enc)   # page 2 – encoding  hists
             plt.close(fig_dec)
@@ -415,13 +443,13 @@ def main() -> None:
     # ------------- plotting / saving --------------------------------
     if len(stub_data) == 1:
         stub, (enc, dec, bler, ber) = next(iter(stub_data.items()))
-        fig = plot_hist(enc, dec, bler, ber, bins=args.bins, stub=stub, show=not args.out)
+        fig = plot_hist(enc, dec, bler, ber, bins=args.bins, stub=stub, show=not args.out, smooth=args.smooth)
         if args.out:
             fig.savefig(args.out)
             plt.close(fig)
             print(f"Wrote histogram to {args.out}")
     else:
-        fig_enc, fig_dec = _grid_hists(stub_data, bins=args.bins)
+        fig_enc, fig_dec = _grid_hists(stub_data, bins=args.bins, smooth=args.smooth)
         if args.out:
             with PdfPages(args.out) as pdf:
                 pdf.savefig(fig_dec)    # decoding histograms first
