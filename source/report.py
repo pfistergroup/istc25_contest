@@ -261,23 +261,33 @@ def _grid_hists(
 def overlay_hists(
     stub_data: dict[str, tuple[np.ndarray, np.ndarray, float, float]],
     *,
-    bins: int = 50,
+    bins: int = 50,               # kept for API compatibility, not used now
     metric: str = "dec"
 ) -> plt.Figure:
+    """
+    Plot over-laid kernel-density estimates (no histogram bars) with the area
+    under each curve softly filled.  *metric* selects “enc” or “dec”.
+    """
+    if gaussian_kde is None:
+        raise RuntimeError("overlay_hists needs SciPy (gaussian_kde).")
+
     fig, ax = plt.subplots(figsize=(6, 4))
-    cmap   = _get_discrete_cmap("tab10", len(stub_data))
-    colours = [cmap(i) for i in range(len(stub_data))]
+
+    # Colour map with high visual contrast
+    cmap     = _get_discrete_cmap("Set1", len(stub_data))
+    colours  = [cmap(i) for i in range(len(stub_data))]
 
     for (stub, (enc, dec, _, _)), col in zip(sorted(stub_data.items()), colours):
         data = enc if metric == "enc" else dec
-        ax.hist(data, bins=bins, density=True, alpha=0.4,
-                color=col, edgecolor="black", label=stub)
-        if gaussian_kde is not None and len(data) > 1:
-            xs = np.linspace(data.min(), data.max(), 300)
-            ax.plot(xs, gaussian_kde(data)(xs), color=col, lw=1.5)
+        if len(data) < 2:                # KDE needs ≥2 samples
+            continue
+        xs  = np.linspace(data.min(), data.max(), 400)
+        pdf = gaussian_kde(data)(xs)
+        ax.plot(xs, pdf, color=col, lw=2, label=stub)
+        ax.fill_between(xs, pdf, color=col, alpha=0.25)
 
     which = "Encoding" if metric == "enc" else "Decoding"
-    ax.set_title(f"{which}-time distributions")
+    ax.set_title(f"{which}-time distributions (KDE)")
     ax.set_xlabel("Time (µs)")
     ax.set_ylabel("Density")
     ax.legend(loc="upper right", fontsize="small")
@@ -490,7 +500,7 @@ def main() -> None:
             bler, ber          = calc_rates(blk, bit, args.bits_per_block)
             stub_data[stub]    = (enc, dec, bler, ber)
 
-        fig = overlay_hists(stub_data, bins=args.bins, metric=args.metric)
+        fig = overlay_hists(stub_data, metric=args.metric)
 
         if args.out:
             out_path = Path(args.out)
