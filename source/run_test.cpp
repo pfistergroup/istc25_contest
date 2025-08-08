@@ -259,7 +259,7 @@ void run_test_file(std::string filename, std::string output_filename) {
     // Setup output
     std::ostream* outputStream;
     std::ofstream fileStream;
-    fileStream.open(output_filename);
+    fileStream.open(output_filename + ".out");
     if (fileStream.is_open()) {
       outputStream = &fileStream;
     }
@@ -291,8 +291,11 @@ void run_test_file(std::string filename, std::string output_filename) {
             mean[i] = ((float)sum[i]) / n_sample;
         }
 
-        // Report results
-        *outputStream << "Test with parameters (k=" << k << ", n=" << n << ", esno=" << esno << ", n_block=" << n_block << "): "
+        // Write results
+        *outputStream << k << " " << n << " "  << esno << " " << n_block << " " << sum[0] << " " << sum[1] << " " << sum[2] << " " << sum[3] << std::endl;
+
+        // Print results
+        std::cout<< "Test with parameters (k=" << k << ", n=" << n << ", esno=" << esno << ", n_block=" << n_block << "): "
                   << "Block: " << sum[0] << "/" << n_sample << " = " << mean[0] << ", "
                   << "Info Bit Errors: " << sum[1]  << "/" << n_sample*k << " = " << mean[1]/k << ", "
                   << "Encoding Time (ns): " << sum[2]  << "/" << n_sample << " = " << mean[2] << ", "
@@ -300,7 +303,7 @@ void run_test_file(std::string filename, std::string output_filename) {
 
         // Write stats
         if (!output_filename.empty()) {
-          std::string suffix = std::to_string(k) + "_" + std::to_string(n) + "_" + std::to_string(n_block);
+          std::string suffix = "_" + std::to_string(k) + "_" + std::to_string(n) + "_" + std::to_string(n_block);
           std::ofstream statStream(output_filename + suffix);
           run_stats.print(&statStream);
         }
