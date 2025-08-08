@@ -186,30 +186,46 @@ def parse_summary_files(*paths: str | Path,
                         n: int | None = None
                         ) -> dict[str, tuple[float, float]]:
     """
-    Return {stub : (esno, avg_dec_time)} from summary files whose *file name*
-    equals the stub.  If k and/or n are given, only lines matching those
-    values are considered.
+    Return {stub : (esno, avg_dec_time)} taken from “summary” files.
+
+    • Every *paths* item may be either
+        – a file               → parsed directly
+        – a directory          → all files inside whose extension is “” or
+                                 “.out” are parsed
+    • If k and/or n are given, only lines that match those values are used.
     """
-    result: dict[str, tuple[float, float]] = {}
-    for raw in paths:
-        p = Path(raw).expanduser()
-        if not p.is_file():
-            continue
-        stub = p.stem                    # ignore extension (.out, …)
+
+    def consume_file(p: Path, store: dict[str, tuple[float, float]]) -> None:
+        """Read one summary file and update *store* (at most one entry per file)."""
+        stub = p.stem                       # filename without extension
         with p.open(encoding="utf-8", errors="ignore") as fh:
             for line in fh:
                 if not line.strip() or line.lstrip().startswith("#"):
                     continue
                 parts = line.split()
-                if len(parts) < 8:       # need at least k n esno n_blk blkerr biterr avg_enc avg_dec
+                if len(parts) < 8:          # need k n esno n_blk blkerr biterr avg_enc avg_dec
                     continue
                 k_i, n_i = map(int, parts[:2])
                 if (k is not None and k_i != k) or (n is not None and n_i != n):
                     continue
                 esno      = float(parts[2])
                 avg_dec_t = float(parts[7])
-                result[stub] = (esno, avg_dec_t)
-                break                    # one point per stub
+                store[stub] = (esno, avg_dec_t)
+                break                       # only first matching line per file
+
+    result: dict[str, tuple[float, float]] = {}
+
+    for raw in paths:
+        p = Path(raw).expanduser()
+        if p.is_dir():
+            # scan directory for candidate summary files
+            for child in p.iterdir():
+                if child.is_file() and child.suffix in ("", ".out"):
+                    consume_file(child, result)
+        elif p.is_file():
+            consume_file(p, result)
+        # non-existent paths are silently ignored (consistent with previous behaviour)
+
     return result
 
 
