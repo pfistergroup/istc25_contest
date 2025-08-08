@@ -32,13 +32,24 @@ def parse_logs(*paths: str | Path) -> tuple[np.ndarray, np.ndarray, np.ndarray, 
     files: list[Path] = []
     for raw in paths:
         p = Path(raw).expanduser()
-        if p.is_dir():  # collect *.log, *.txt and extension-less files
-            files.extend(sorted(p.glob("*.log")))
-            files.extend(sorted(p.glob("*.txt")))
-            # NEW: include files with no extension
-            files.extend(sorted(fp for fp in p.iterdir()
-                                if fp.is_file() and fp.suffix == ""))
-            continue            # directory handled – move to next
+        if p.is_dir():
+            # keep *.log and extension-less files ONLY
+            for child in p.iterdir():
+                if not child.is_file():
+                    continue
+                if child.suffix == ".txt":          # ❶ skip *.txt
+                    continue
+                if child.suffix not in (".log", ""):
+                    continue
+
+                # ❷ keep the file only when a sibling “[stub].out” exists
+                stub  = child.stem                   # filename without extension
+                out_f = child.with_name(stub + ".out")
+                if not out_f.is_file():
+                    continue
+
+                files.append(child)
+            continue        # directory handled – move to next argument
         else:
             if not p.is_file():
                 raise FileNotFoundError(f"Log file not found: {p}")
