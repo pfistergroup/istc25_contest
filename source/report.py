@@ -5,6 +5,8 @@ Generate a report from simulation log files.
 Each log line must contain four integers:
     blkerr  biterrs  enctime  dectime
 
+Summary files may be extension-less or have a .out extension.
+
 Example
 -------
 python report.py --bits-per-block 1024 run1.log run2.log
@@ -193,13 +195,13 @@ def parse_summary_files(*paths: str | Path,
         p = Path(raw).expanduser()
         if not p.is_file():
             continue
-        stub = p.name                    # summary file has no extension
+        stub = p.stem                    # ignore extension (.out, …)
         with p.open(encoding="utf-8", errors="ignore") as fh:
             for line in fh:
                 if not line.strip() or line.lstrip().startswith("#"):
                     continue
                 parts = line.split()
-                if len(parts) < 8:
+                if len(parts) < 8:       # need at least k n esno n_blk blkerr biterr avg_enc avg_dec
                     continue
                 k_i, n_i = map(int, parts[:2])
                 if (k is not None and k_i != k) or (n is not None and n_i != n):
@@ -271,9 +273,12 @@ def main() -> None:
 
     # SUMMARY scatter mode -------------------------------------------------
     if args.summary:
-        # if no files supplied, take every extension-less file in cwd
-        summary_files = args.logs or [p for p in Path(".").iterdir()
-                                      if p.is_file() and p.suffix == ""]
+        # if no files supplied, take every extension-less or .out file in cwd
+        summary_files = (
+            args.logs or
+            [p for p in Path(".").iterdir()
+             if p.is_file() and p.suffix in ("", ".out")]
+        )
         if not summary_files:
             parser.error("No summary files provided or found.")
         summary = parse_summary_files(*summary_files, k=args.k, n=args.n)
