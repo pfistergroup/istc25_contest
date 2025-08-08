@@ -61,10 +61,10 @@ template <typename T,int N> class stats
     // return number of samples
     int n_sample() { return data.size(); }
 
-    // return sum
-    std::array<int, N> sum()
+    // return sum (same type as stored values)
+    std::array<T, N> sum()
     {
-      std::array<int, N> sum = {0};
+      std::array<T, N> sum{};           // all-zeros
       for (const auto& sample : data) {
           for (int i = 0; i < N; ++i) {
               sum[i] += sample[i];
@@ -95,13 +95,14 @@ enum dec_stat : int
 };
 
 // Setup for decoder stats
-class decoder_stats : public stats<int,4>
+class decoder_stats : public stats<long long,4>
 {
   public:
-    typedef std::array<int, 4> statvec;
-    void update(int blk, int bit, int enc, int dec) {
+    typedef std::array<long long, 4> statvec;
+    void update(long long blk, long long bit,
+                long long enc, long long dec) {
         statvec dummy = {blk, bit, enc, dec};
-        stats<int, 4>::add_sample(dummy);
+        stats<long long, 4>::add_sample(dummy);
     }
     //std::vector<std::array<int, 4>> get_data() const { return data; }
 };
