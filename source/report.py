@@ -108,6 +108,11 @@ def parse_logs(*paths: str | Path) -> tuple[np.ndarray, np.ndarray, np.ndarray, 
     )
 
 
+# --- single–file front-end -----------------------------------------
+def parse_one_log(path: Path) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """Wrapper that calls parse_logs() for exactly one file-path."""
+    return parse_logs(path)                       # existing routine already accepts
+
 def calc_rates(blkerr: np.ndarray, biterrs: np.ndarray, bits_per_block: int | None = None) -> tuple[float, float]:
     """Compute BLER and BER."""
     if len(blkerr) == 0:
@@ -383,12 +388,49 @@ def main() -> None:
         return
     # -------------------------------------------------------------------
 
-    try:
-        blk, bit, enc, dec = parse_logs(*args.logs)
-    except ValueError as e:
-        parser.error(str(e))
-    bler, ber = calc_rates(blk, bit, args.bits_per_block)
-    plot_hist(enc, dec, bler, ber, bins=args.bins)
+    # ------------- collect data per-stub ----------------------------
+    files = args.logs or ["."]
+    stub_data: dict[str, tuple[np.ndarray, np.ndarray, float, float]] = {}
+
+    for p_raw in files:
+        p = Path(p_raw)
+        # if directory was supplied pick eligible log files inside
+        if p.is_dir():
+            for child in p.iterdir():
+                if not child.is_file() or child.suffix != ".out":
+                    continue
+                stub = child.stem
+                blk, bit, enc, dec = parse_one_log(child)
+                bler, ber          = calc_rates(blk, bit, args.bits_per_block)
+                stub_data[stub]    = (enc, dec, bler, ber)
+        else:                                   # explicit file given
+            stub = p.stem
+            blk, bit, enc, dec = parse_one_log(p)
+            bler, ber          = calc_rates(blk, bit, args.bits_per_block)
+            stub_data[stub]    = (enc, dec, bler, ber)
+
+    if not stub_data:
+        parser.error("No valid log files to plot.")
+
+    # ------------- plotting / saving --------------------------------
+    if len(stub_data) == 1:
+        stub, (enc, dec, bler, ber) = next(iter(stub_data.items()))
+        fig = plot_hist(enc, dec, bler, ber, bins=args.bins, stub=stub, show=not args.out)
+        if args.out:
+            fig.savefig(args.out)
+            plt.close(fig)
+            print(f"Wrote histogram to {args.out}")
+    else:
+        fig_enc, fig_dec = _grid_hists(stub_data, bins=args.bins)
+        if args.out:
+            with PdfPages(args.out) as pdf:
+                pdf.savefig(fig_dec)    # decoding histograms first
+                pdf.savefig(fig_enc)    # encoding histograms second
+            plt.close(fig_dec)
+            plt.close(fig_enc)
+            print(f"Wrote {len(stub_data)} histograms to {args.out}")
+        else:
+            plt.show()
 
 
 if __name__ == "__main__":
