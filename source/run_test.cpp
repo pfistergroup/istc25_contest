@@ -292,7 +292,7 @@ void run_test_file(std::string filename, std::string output_filename) {
         }
 
         // Write results
-        *outputStream << k << " " << n << " "  << esno << " " << n_block << " " << sum[0] << " " << sum[1] << " " << sum[2] << " " << sum[3] << std::endl;
+        *outputStream << k << " " << n << " "  << esno << " " << n_block << " " << sum[0] << " " << sum[1] << " " << mean[2] << " " << mean[3] << std::endl;
 
         // Print results
         std::cout<< "Test with parameters (k=" << k << ", n=" << n << ", esno=" << esno << ", n_block=" << n_block << "): "
