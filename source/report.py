@@ -250,6 +250,47 @@ def _grid_hists(
 
     return fig_enc, fig_dec
 
+# ---------- overlay helper -------------------------------------------------
+def overlay_hists(
+    stub_data: dict[str, tuple[np.ndarray, np.ndarray, float, float]],
+    *,
+    bins: int = 50
+) -> plt.Figure:
+    """
+    One figure, two axes:
+        • left  – overlaid encoding-time histograms
+        • right – overlaid decoding-time histograms
+    Each stub gets its own colour, alpha-blended bars and KDE curve.
+    """
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 4))
+    cmap   = plt.cm.get_cmap("tab10", len(stub_data))
+    colors = [cmap(i) for i in range(len(stub_data))]
+
+    for (stub, (enc, dec, _, _)), col in zip(sorted(stub_data.items()), colors):
+        # Encoding
+        ax1.hist(enc, bins=bins, density=True, alpha=0.4,
+                 color=col, edgecolor="black", label=stub)
+        xs = np.linspace(enc.min(), enc.max(), 300)
+        ax1.plot(xs, gaussian_kde(enc)(xs), color=col, lw=1.5)
+
+        # Decoding
+        ax2.hist(dec, bins=bins, density=True, alpha=0.4,
+                 color=col, edgecolor="black")
+        xs = np.linspace(dec.min(), dec.max(), 300)
+        ax2.plot(xs, gaussian_kde(dec)(xs), color=col, lw=1.5)
+
+    ax1.set_title("Encoding-time distributions")
+    ax1.set_xlabel("Time (µs)")
+    ax1.set_ylabel("Density")
+    ax1.legend(loc="upper right", fontsize="small")
+
+    ax2.set_title("Decoding-time distributions")
+    ax2.set_xlabel("Time (µs)")
+    ax2.set_ylabel("Density")
+
+    fig.tight_layout()
+    return fig
+
 # ---------- summary-file support -------------------------------------------
 def parse_summary_files(*paths: str | Path,
                         k: int | None = None,
@@ -360,12 +401,21 @@ def main() -> None:
                         help="Plot Es/No vs avg-decoding-time from summary files")
     parser.add_argument("-S", "--smooth", action="store_true",
                         help="Use density histogram with KDE overlay")
+    parser.add_argument("-O", "--overlay", action="store_true",
+                        help="Overlay all stubs that share one (k,n) "
+                             "pair into common axes (forces smoothed / KDE view)")
     args = parser.parse_args()
 
     # Graceful warning if --smooth requested but scipy not found
     if args.smooth and gaussian_kde is None:
         print("⚠️  SciPy not found – smooth histograms disabled.")
         args.smooth = False
+
+    # --overlay always implies smoothed/KDE histograms
+    if args.overlay:
+        args.smooth = True
+        if gaussian_kde is None:
+            parser.error("--overlay needs SciPy (gaussian_kde) to be installed.")
 
     # SUMMARY scatter mode -------------------------------------------------
     if args.summary:
@@ -389,6 +439,40 @@ def main() -> None:
                 fig.savefig(out_path)
             plt.close(fig)
             print(f"Wrote scatter plot to {out_path}")
+        else:
+            plt.show()
+        return
+    # -------------------------------------------------------------------
+
+    # OVERLAY mode --------------------------------------------------------
+    if args.overlay:
+        # Require k and n
+        if args.k is None or args.n is None:
+            parser.error("--overlay requires --k and --n to be specified.")
+
+        stub_logs: dict[str, list[Path]] = (
+            {Path(p).stem: [Path(p)] for p in args.logs}     # explicit files
+            if args.logs else
+            find_logs_by_stub(args.k, args.n)               # auto search
+        )
+        if not stub_logs:
+            parser.error("No log files found for overlay.")
+
+        stub_data: dict[str, tuple[np.ndarray, np.ndarray, float, float]] = {}
+        for stub, flist in sorted(stub_logs.items()):
+            blk, bit, enc, dec = parse_logs(*flist)
+            bler, ber          = calc_rates(blk, bit, args.bits_per_block)
+            stub_data[stub]    = (enc, dec, bler, ber)
+
+        fig = overlay_hists(stub_data, bins=args.bins)
+
+        if args.out:
+            out_path = Path(args.out)
+            if out_path.suffix.lower() != ".pdf":
+                out_path = out_path.with_suffix(".pdf")
+            fig.savefig(out_path)
+            plt.close(fig)
+            print(f"Wrote overlaid histograms to {out_path}")
         else:
             plt.show()
         return
