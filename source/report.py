@@ -205,7 +205,10 @@ def parse_summary_files(*paths: str | Path,
                 parts = line.split()
                 if len(parts) < 8:          # need k n esno n_blk blkerr biterr avg_enc avg_dec
                     continue
-                k_i, n_i = map(int, parts[:2])
+                try:
+                    k_i, n_i = map(int, parts[:2])
+                except ValueError:
+                    continue          # skip non-numeric line
                 if (k is not None and k_i != k) or (n is not None and n_i != n):
                     continue
                 esno      = float(parts[2])
@@ -220,7 +223,7 @@ def parse_summary_files(*paths: str | Path,
         if p.is_dir():
             # scan directory for candidate summary files
             for child in p.iterdir():
-                if child.is_file() and child.suffix in ("", ".out"):
+                if child.is_file() and child.suffix == ".out":
                     consume_file(child, result)
         elif p.is_file():
             consume_file(p, result)
@@ -289,11 +292,10 @@ def main() -> None:
 
     # SUMMARY scatter mode -------------------------------------------------
     if args.summary:
-        # if no files supplied, take every extension-less or .out file in cwd
+        # if no files supplied, take every .out file in cwd
         summary_files = (
             args.logs or
-            [p for p in Path(".").iterdir()
-             if p.is_file() and p.suffix in ("", ".out")]
+            [p for p in Path(".").iterdir() if p.is_file() and p.suffix == ".out"]
         )
         if not summary_files:
             parser.error("No summary files provided or found.")
