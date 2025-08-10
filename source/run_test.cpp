@@ -271,6 +271,10 @@ void run_test_file(std::string filename, std::string output_filename) {
     // Start line by line file read until no more lines
     std::string line;
     while (std::getline(file, line)) {
+        // Skip blank/whitespace-only lines and comment lines
+        auto pos = line.find_first_not_of(" \t\r\n");
+        if (pos == std::string::npos) continue;   // blank line
+        if (line[pos] == '#') continue;           // comment line
         std::istringstream iss(line);
         int k, n, n_block, opt_avg;
         float esno;
