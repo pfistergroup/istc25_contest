@@ -228,10 +228,18 @@ void run_test_number(int t, decoder_stats &stats)
 void run_single_test(int test_number) {
     srand(static_cast<unsigned int>(time(0))); // Seed random number generator
     decoder_stats run_stats;
+    run_stats.clear();
 
-    // Run the specified test and output results
+    // Setup the specified test
     test_point &test = contest[test_number];
-    run_test(test.k, test.n, test.esno, test.n_block, test.opt_avg, run_stats);
+    float esno = test.esno;
+    int n_block = test.n_block;
+    if (default_esno > 0.0) esno = default_esno;
+    if (default_nblock > 0) n_block = default_nblock;
+    std::cout << "Test " << test_number << " (" << test.n << "," << test.k << "):  ";
+
+    // Run test and output results
+    run_test(test.k, test.n, esno, n_block, test.opt_avg, run_stats);
     int n_sample = run_stats.n_sample();
     auto sum = run_stats.sum();
     std::array<float, 4> mean;
@@ -239,8 +247,7 @@ void run_single_test(int test_number) {
         mean[i] = ((float)sum[i]) / n_sample;
     }
     //std::cout << n_sample << std::endl;
-    std::cout << "Test " << test_number << ": "
-              << "Block: " << sum[0] << "/" << n_sample << " = " << mean[0] << ", "
+    std::cout << "Block: " << sum[0] << "/" << n_sample << " = " << mean[0] << ", "
               << "Info Bit Errors: " << sum[1]  << "/" << n_sample*contest[test_number].k << " = " << mean[1]/contest[test_number].k << ", "
               << "Encoding Time (ns): " << sum[2]  << "/" << n_sample << " = " << mean[2] << ", "
               << "Decoding Time (ns): " << sum[3]  << "/" << n_sample << " = " << mean[3] << ", " << std::endl;
@@ -361,7 +368,7 @@ int main(int argc, char* argv[])
     iter = parsedOptions.find("esno");
     if (iter != parsedOptions.end()) {
         default_esno = std::stof(iter->second);
-        std::cout << "EsN0 = " << default_esno << std::endl;
+        std::cout << "EsN0 = " << default_esno << " (dB)" << std::endl;
     }
     iter = parsedOptions.find("blocks");
     if (iter != parsedOptions.end()) {
