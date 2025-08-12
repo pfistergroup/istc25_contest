@@ -368,7 +368,7 @@ int main(int argc, char* argv[])
     iter = parsedOptions.find("esno");
     if (iter != parsedOptions.end()) {
         default_esno = std::stof(iter->second);
-        std::cout << "EsN0 = " << default_esno << " (dB)" << std::endl;
+        std::cout << "EsN0 = " << default_esno << std::endl;
     }
     iter = parsedOptions.find("blocks");
     if (iter != parsedOptions.end()) {
