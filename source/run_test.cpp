@@ -14,6 +14,9 @@
 
 const int N_TEST = 12;
 
+// Global random number generator
+std::mt19937 global_rng;
+
 // Define structure for each test point, specifying code parameters and test conditions
 struct test_point
 {
@@ -44,6 +47,7 @@ test_point contest[N_TEST] =
 // Global defaults
 float default_esno = 0.0;
 int default_nblock = 0;
+unsigned int rng_seed = 0; // 0 means use clock-based seed
 
 // Define class to collect statistics
 template <typename T,int N> class stats
@@ -110,20 +114,22 @@ class decoder_stats : public stats<long long,4>
 // Simulate BPSK transmission over an AWGN channel
 void channel(const bitvec& cw, float esno, fltvec& llr_out) {
     llr_out.resize(cw.size());
-    std::default_random_engine generator(std::chrono::system_clock::now().time_since_epoch().count());
     std::normal_distribution<float> distribution(4*esno, std::sqrt(8*esno));
 
     for (size_t i = 0; i < cw.size(); ++i) {
         // BPSK modulation: 0 -> +1, 1 -> -1
         float modulated = (cw[i] == 0) ? 1.0f : -1.0f;
         // Add Gaussian noise
-        llr_out[i] = modulated * distribution(generator);
+        llr_out[i] = modulated * distribution(global_rng);
     }
 }
 
 // Run all the tests in one round
 void run_test(int k, int n, float esno, int n_block, int opt_avg, decoder_stats &stats)
 {
+  // Reset global RNG to ensure repeatability for each test
+  global_rng.seed(rng_seed);
+
   // Allocate variables
   bitvec info(k);
   bitvec cw(n);
@@ -133,7 +139,6 @@ void run_test(int k, int n, float esno, int n_block, int opt_avg, decoder_stats 
   bitvec info_est(n);
 
   // Setup binary RNG
-  std::default_random_engine generator(std::chrono::system_clock::now().time_since_epoch().count());
   std::uniform_int_distribution<int> distribution(0, 1);
 
   // Construct encoder-decoder
@@ -153,7 +158,7 @@ void run_test(int k, int n, float esno, int n_block, int opt_avg, decoder_stats 
   {
     // Generate random binary message of length test.k
     for (int j = 0; j < k; ++j) {
-        info[j] = distribution(generator); // Random binary message
+        info[j] = distribution(global_rng); // Random binary message
         //std::cout << info[j] << " ";
     }
     //std::cout << std::endl;
@@ -202,7 +207,6 @@ void run_test_number(int t, decoder_stats &stats)
   bitvec info_est(test.n);
 
   // Setup binary RNG
-  std::default_random_engine generator(std::chrono::system_clock::now().time_since_epoch().count());
   std::uniform_int_distribution<int> distribution(0, 1);
 
   // Construct encoder-decoder
@@ -226,7 +230,6 @@ void run_test_number(int t, decoder_stats &stats)
 
 
 void run_single_test(int test_number) {
-    srand(static_cast<unsigned int>(time(0))); // Seed random number generator
     decoder_stats run_stats;
     run_stats.clear();
 
@@ -254,7 +257,6 @@ void run_single_test(int test_number) {
 }
 
 void run_test_file(std::string filename, std::string output_filename) {
-    srand(static_cast<unsigned int>(time(0))); // Seed random number generator
     decoder_stats run_stats;
 
     // Open test parameter file using filename
@@ -331,6 +333,7 @@ OptionSpec options[] = {
     {"-m", "--blocks",  true,  "Run this number of blocks"},
     {"-f", "--file",  true,  "Run tests as described in file"},
     {"-o", "--output",  true,  "Write output to a file with this filename"},
+    {"-e", "--seed",  true,  "Set random number generator seed"},
     {nullptr, nullptr, false, nullptr} // sentinel to mark end
 };
 
@@ -356,6 +359,12 @@ int main(int argc, char* argv[])
     if (iter != parsedOptions.end()) {
         output_file = iter->second;
         std::cout << "Output file = " << output_file << std::endl;
+    }
+    // Handle seed parameter
+    iter = parsedOptions.find("seed");
+    if (iter != parsedOptions.end()) {
+        rng_seed = std::stoul(iter->second);
+        std::cout << "RNG seed = " << rng_seed << std::endl;
     }
     // Handle input file argument
     iter = parsedOptions.find("file");
@@ -391,6 +400,12 @@ int main(int argc, char* argv[])
             }
         }
     }
+
+    // Seed the global random number generator
+    if (rng_seed == 0) {
+        rng_seed = std::chrono::system_clock::now().time_since_epoch().count();
+    }
+    global_rng.seed(rng_seed);
 
     // Success
     return 0;
