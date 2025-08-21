@@ -167,9 +167,12 @@ void run_test(int k, int n, float esno, int n_block, int opt_avg, decoder_stats 
     //std::cout << std::endl;
 
     // Encode message
-    auto enc_start = std::chrono::steady_clock::now();
-    entry.encode(info, cw);
-    auto enc_time = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - enc_start).count();
+    long long enc_time;
+    do {
+      auto enc_start = std::chrono::high_resolution_clock::now();
+      entry.encode(info, cw);
+      enc_time = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - enc_start).count();
+    } while (enc_time < 0);
 
     // Transmit message
     channel(cw, esno, float_llr);
@@ -178,10 +181,13 @@ void run_test(int k, int n, float esno, int n_block, int opt_avg, decoder_stats 
     for (int j = 0; j < n; ++j) llr[j] = entry.llr2int(float_llr[j]);
 
     // Decode message
-    auto dec_start = std::chrono::steady_clock::now();
-    //int detect = entry.decode(llr, cw_est, info_est);
-    entry.decode(llr, cw_est, info_est);
-    auto dec_time = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - dec_start).count();
+    long long dec_time;
+    do {
+      auto dec_start = std::chrono::high_resolution_clock::now();
+      //int detect = entry.decode(llr, cw_est, info_est);
+      entry.decode(llr, cw_est, info_est);
+      dec_time = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - dec_start).count();
+    } while (dec_time < 0);
 
     // Count number of information bit errors
     int bit_err = 0;
