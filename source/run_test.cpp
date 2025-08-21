@@ -128,6 +128,9 @@ void channel(const bitvec& cw, float esno, fltvec& llr_out) {
 void run_test(int k, int n, float esno, int n_block, int opt_avg, decoder_stats &stats)
 {
   // Reset global RNG to ensure repeatability for each test
+  if (rng_seed == 0) {
+      rng_seed = std::chrono::system_clock::now().time_since_epoch().count();
+  }
   global_rng.seed(rng_seed);
 
   // Allocate variables
@@ -400,12 +403,6 @@ int main(int argc, char* argv[])
             }
         }
     }
-
-    // Seed the global random number generator
-    if (rng_seed == 0) {
-        rng_seed = std::chrono::system_clock::now().time_since_epoch().count();
-    }
-    global_rng.seed(rng_seed);
 
     // Success
     return 0;
