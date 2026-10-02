@@ -47,6 +47,8 @@ test_point contest[N_TEST] =
 // Global defaults
 float default_esno = 0.0;
 int default_nblock = 0;
+bool has_default_esno = false;
+bool has_default_nblock = false;
 unsigned int rng_seed = 0; // 0 means use clock-based seed
 
 // Define class to collect statistics
@@ -127,6 +129,11 @@ void channel(const bitvec& cw, float esno, fltvec& llr_out) {
 // Run all the tests in one round
 void run_test(int k, int n, float esno, int n_block, int opt_avg, decoder_stats &stats)
 {
+  stats.clear();
+  if (k <= 0 || n <= k || esno < 0.0f || n_block <= 0) {
+    std::cerr << "Invalid test parameters." << std::endl;
+    return;
+  }
   // Reset global RNG to ensure repeatability for each test
   if (rng_seed == 0) {
       rng_seed = std::chrono::system_clock::now().time_since_epoch().count();
@@ -149,12 +156,9 @@ void run_test(int k, int n, float esno, int n_block, int opt_avg, decoder_stats 
 
   // Init encoder and decoder for entry
   if (entry.init(k,n,opt_avg) != 0) {
-    // This submission does not handle this code
-    std::cout << "Handle exception" << std::endl;
+    std::cerr << "Unable to initialize encoder-decoder." << std::endl;
+    return;
   }
-
-  // Setup
-  stats.clear();
 
   // Run tests
   for (int i = 0; i < n_block; ++i)
@@ -206,33 +210,11 @@ void run_test(int k, int n, float esno, int n_block, int opt_avg, decoder_stats 
 // Run all the tests in one round
 void run_test_number(int t, decoder_stats &stats)
 {
-  // Allocate variables
   test_point &test = contest[t];
-  bitvec info(test.k);
-  bitvec cw(test.n);
-  fltvec float_llr(test.n);
-  llrvec llr(test.n);
-  bitvec cw_est(test.n);
-  bitvec info_est(test.n);
-
-  // Setup binary RNG
-  std::uniform_int_distribution<int> distribution(0, 1);
-
-  // Construct encoder-decoder
-  enc_dec entry;
-
-  // Init encoder and decoder for entry
-  if (entry.init(test.k,test.n,test.opt_avg) != 0) {
-    // This submission does not handle this code
-    std::cout << "Handle exception" << std::endl;
-  }
-
-  // Setup
-  stats.clear();
   float esno = test.esno;
   int n_block = test.n_block;
-  if (default_esno > 0.0) esno = default_esno;
-  if (default_nblock > 0) n_block = default_nblock;
+  if (has_default_esno) esno = default_esno;
+  if (has_default_nblock) n_block = default_nblock;
 
   run_test(test.k, test.n, esno, n_block, test.opt_avg, stats);
 }
@@ -246,8 +228,8 @@ void run_single_test(int test_number) {
     test_point &test = contest[test_number];
     float esno = test.esno;
     int n_block = test.n_block;
-    if (default_esno > 0.0) esno = default_esno;
-    if (default_nblock > 0) n_block = default_nblock;
+    if (has_default_esno) esno = default_esno;
+    if (has_default_nblock) n_block = default_nblock;
     std::cout << "Test " << test_number << " (" << test.n << "," << test.k << "):  ";
 
     // Run test and output results
@@ -276,14 +258,15 @@ void run_test_file(std::string filename, std::string output_filename) {
     }
 
     // Setup output
-    std::ostream* outputStream;
+    std::ostream* outputStream = &std::cout;
     std::ofstream fileStream;
-    fileStream.open(output_filename + ".out");
-    if (fileStream.is_open()) {
-      outputStream = &fileStream;
-    }
-    else {
-      outputStream = &std::cout;
+    if (!output_filename.empty()) {
+      fileStream.open(output_filename + ".out");
+      if (fileStream.is_open()) {
+        outputStream = &fileStream;
+      } else {
+        std::cerr << "Error opening output file: " << output_filename << ".out" << std::endl;
+      }
     }
 
     // Start line by line file read until no more lines
@@ -303,11 +286,20 @@ void run_test_file(std::string filename, std::string output_filename) {
             continue;
         }
 
-        // Run test with given parameters
-        run_test(k, n, esno, n_block, opt_avg, run_stats);
+        if (k <= 0 || n <= k || esno < 0.0f || n_block <= 0) {
+            std::cerr << "Invalid test parameters in line: " << line << std::endl;
+            continue;
+        }
+
+        const float effective_esno = has_default_esno ? default_esno : esno;
+        const int effective_nblock = has_default_nblock ? default_nblock : n_block;
+
+        // Run test with given parameters and command-line overrides.
+        run_test(k, n, effective_esno, effective_nblock, opt_avg, run_stats);
 
         // Process results
         int n_sample = run_stats.n_sample();
+        if (n_sample == 0) continue;
         auto sum = run_stats.sum();
         std::array<float, 4> mean;
         for (int i = 0; i < 4; ++i) {
@@ -315,10 +307,10 @@ void run_test_file(std::string filename, std::string output_filename) {
         }
 
         // Write results
-        *outputStream << k << " " << n << " "  << esno << " " << n_block << " " << sum[0] << " " << sum[1] << " " << mean[2] << " " << mean[3] << std::endl;
+        *outputStream << k << " " << n << " "  << effective_esno << " " << effective_nblock << " " << sum[0] << " " << sum[1] << " " << mean[2] << " " << mean[3] << std::endl;
 
         // Print results
-        std::cout<< "Test with parameters (k=" << k << ", n=" << n << ", esno=" << esno << ", n_block=" << n_block << "): "
+        std::cout<< "Test with parameters (k=" << k << ", n=" << n << ", esno=" << effective_esno << ", n_block=" << effective_nblock << "): "
                   << "Block: " << sum[0] << "/" << n_sample << " = " << mean[0] << ", "
                   << "Info Bit Errors: " << sum[1]  << "/" << n_sample*k << " = " << mean[1]/k << ", "
                   << "Encoding Time (ns): " << sum[2]  << "/" << n_sample << " = " << mean[2] << ", "
@@ -359,6 +351,7 @@ int main(int argc, char* argv[])
         return 0;
     }
 
+    try {
     // Declare test_file variable
     std::string output_file;
     std::string test_file;
@@ -375,23 +368,27 @@ int main(int argc, char* argv[])
         rng_seed = std::stoul(iter->second);
         std::cout << "RNG seed = " << rng_seed << std::endl;
     }
-    // Handle input file argument
-    iter = parsedOptions.find("file");
-    if (iter != parsedOptions.end()) {
-        test_file = iter->second;
-        std::cout << "Input file = " << test_file << std::endl;
-        run_test_file(test_file,output_file);
-    }
     // Handle EsN0 and blocks parameters
     iter = parsedOptions.find("esno");
     if (iter != parsedOptions.end()) {
         default_esno = std::stof(iter->second);
+        if (default_esno < 0.0f) throw std::invalid_argument("Es/N0 must be non-negative");
+        has_default_esno = true;
         std::cout << "EsN0 = " << default_esno << std::endl;
     }
     iter = parsedOptions.find("blocks");
     if (iter != parsedOptions.end()) {
         default_nblock = std::stoi(iter->second);
+        if (default_nblock <= 0) throw std::invalid_argument("blocks must be positive");
+        has_default_nblock = true;
         std::cout << "n_block = " << default_nblock << std::endl;
+    }
+    // Apply overrides before processing a parameter file, independent of option order.
+    iter = parsedOptions.find("file");
+    if (iter != parsedOptions.end()) {
+        test_file = iter->second;
+        std::cout << "Input file = " << test_file << std::endl;
+        run_test_file(test_file,output_file);
     }
     // Handle test argument
     iter = parsedOptions.find("test");
@@ -412,4 +409,8 @@ int main(int argc, char* argv[])
 
     // Success
     return 0;
+    } catch (const std::exception &error) {
+        std::cerr << "Invalid option value: " << error.what() << std::endl;
+        return 1;
+    }
 }

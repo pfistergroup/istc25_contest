@@ -28,19 +28,20 @@ class ldpc
     ldpc() : n_rows(0), n_cols(0), n_edges(0), rank(0) {}
 
     // Load code from file in alist format
-    void read_alist(const std::string &filename, bool zero_pad = false);
+    bool read_alist(const std::string &filename, bool zero_pad = false);
 
     // Write code to file in alist format
-    void write_alist(const std::string &filename, bool zero_pad = false);
+    bool write_alist(const std::string &filename, bool zero_pad = false);
 
     // Sort the edge list lexicographically
     void sort_edges();
 
     // Setup code with r rows, c cols, and row/col degrees given by rd and cd
-    void random(int r,int c, std::vector<int> &rd, std::vector<int> &cd);
+    bool random(int r, int c, const std::vector<int> &rd, const std::vector<int> &cd,
+                unsigned int seed_offset = 0);
 
     // Generate encoder
-    void create_encoder(int verbose = 0);
+    bool create_encoder(int verbose = 0);
 
     // Belief-propagation decoding
     int decode(fltvec &llr_in, int n_iter, fltvec &llr_out);
@@ -80,4 +81,3 @@ void test_gaussian_noise(ldpc &code, float esno);
 void test_alist_read_write();
 
 #endif // LDPC_H
-

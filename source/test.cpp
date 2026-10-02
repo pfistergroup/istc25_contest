@@ -14,7 +14,7 @@ void test_alist_read_write(ldpc &code1, int verbose = 0);
 void test_ldpc_encoder(ldpc &code, int verbose = 0);
 
 void test_no_error(ldpc &code, int verbose) {
-    bitvec info(code.n_cols, 0); // Initialize info bits to zero
+    bitvec info(code.n_cols - code.n_rows, 0); // Initialize info bits to zero
     bitvec cw(code.n_cols);
     fltvec llr(code.n_cols);
     bitvec cw_est(code.n_cols, 0);
@@ -62,7 +62,7 @@ void test_no_error(ldpc &code, int verbose) {
 }
 
 void test_single_error(ldpc &code, float llr_mag, int verbose) {
-    bitvec info(code.n_cols, 0); // Initialize info bits to zero
+    bitvec info(code.n_cols - code.n_rows, 0); // Initialize info bits to zero
     bitvec cw(code.n_cols);
     fltvec llr(code.n_cols);
     fltvec llr_out(code.n_cols);
@@ -102,7 +102,7 @@ void test_single_error(ldpc &code, float llr_mag, int verbose) {
 
 int test_gaussian_noise(ldpc &code, float esno, int verbose) {
     // Setup
-    bitvec info(code.n_cols, 0); // Initialize info bits to zero
+    bitvec info(code.n_cols - code.n_rows, 0); // Initialize info bits to zero
     bitvec cw(code.n_cols);
     fltvec llr(code.n_cols);
     fltvec llr_out(code.n_cols, 0.0f);
@@ -250,15 +250,27 @@ int main(int argc, char* argv[])
     ldpc code;
 
     // Test encoder
-    code.read_alist("hamm74.alist",1);
-    test_ldpc_encode(code, 1);
+    if (!code.read_alist("../codes/CCSDS_ldpc_n128_k64.alist")) {
+        std::cerr << "Required CCSDS test matrix is unavailable." << std::endl;
+        return 1;
+    }
+    test_ldpc_encode(code, 0);
 
     // Generate short ldpc code
     int r = 45; // Example number of rows
     int c = 90; // Example number of columns
     intvec row_degrees(r, 6); // Example row degrees
     intvec col_degrees(c, 3); // Example column degrees
-    code.random(r, c, row_degrees, col_degrees);
+    bool encoder_ready = false;
+    for (unsigned int attempt = 0; attempt < 100 && !encoder_ready; ++attempt) {
+        if (code.random(r, c, row_degrees, col_degrees, attempt)) {
+            encoder_ready = code.create_encoder();
+        }
+    }
+    if (!encoder_ready) {
+        std::cerr << "Unable to create a full-rank LDPC test matrix." << std::endl;
+        return 1;
+    }
 
     // Run test functions
     test_alist_read_write(code, 0);
@@ -298,4 +310,3 @@ int main(int argc, char* argv[])
     }
     std::cout << count << " errors out of 100 trials.\n"; 
 }
-

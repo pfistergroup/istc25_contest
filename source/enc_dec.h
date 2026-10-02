@@ -12,9 +12,19 @@ using llrvec = std::vector<llr_type>;
 using fltvec = std::vector<float>;
 using intvec = std::vector<int>;
 
+class ldpc;
+
 class enc_dec
 {
+  private:
+    ldpc *code_ = nullptr;
+    int max_iter_ = 20;
+
   public:
+    enc_dec() = default;
+    ~enc_dec();
+    enc_dec(const enc_dec&) = delete;
+    enc_dec& operator=(const enc_dec&) = delete;
     // Setup for [n,k] code
     int init(int k, int n, bool opt_avg_latency); 
 
@@ -29,4 +39,3 @@ class enc_dec
 };
 
 #endif // ENC_DEC_H
-
